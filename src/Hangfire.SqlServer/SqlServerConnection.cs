@@ -256,24 +256,28 @@ select Name, Value from [{schemaName}].JobParameter with (forceseek) where JobId
                         parameters[jobParameter.Name] = jobParameter.Value;
                     }
 
-                    // TODO: conversion exception could be thrown.
-                    var invocationData = InvocationData.DeserializePayload(jobData.InvocationData);
-
-                    if (!String.IsNullOrEmpty(jobData.Arguments))
-                    {
-                        invocationData.Arguments = jobData.Arguments;
-                    }
-
+                    InvocationData invocationData = null;
                     Job job = null;
                     JobLoadException loadException = null;
 
                     try
                     {
+                        invocationData = InvocationData.DeserializePayload(jobData.InvocationData);
+
+                        if (!String.IsNullOrEmpty(jobData.Arguments))
+                        {
+                            invocationData.Arguments = jobData.Arguments;
+                        }
+
                         job = invocationData.DeserializeJob();
                     }
                     catch (JobLoadException ex)
                     {
                         loadException = ex;
+                    }
+                    catch (Exception ex) when (ex.IsCatchableExceptionType())
+                    {
+                        loadException = new JobLoadException("Could not load the job. See inner exception for the details.", ex);
                     }
 
                     return new JobData

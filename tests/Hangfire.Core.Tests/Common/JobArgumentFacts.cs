@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
@@ -8,7 +7,6 @@ using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Storage;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
 #pragma warning disable 618
@@ -436,19 +434,9 @@ namespace Hangfire.Core.Tests.Common
 
 			var serializationMethods = new List<Tuple<string, Func<string>>>();
 
-#if !NETCOREAPP1_0
-			if (!checkJsonOnly)
-			{
-				var converter = TypeDescriptor.GetConverter(typeof(T));
-				serializationMethods.Add(new Tuple<string, Func<string>>(
-					"TypeDescriptor",
-					() => converter.ConvertToInvariantString(argumentValue)));
-			}
-#endif
-
 			serializationMethods.Add(new Tuple<string, Func<string>>(
 				"JSON",
-				() => JsonConvert.SerializeObject(argumentValue)));
+				() => SerializationHelper.Serialize(argumentValue, typeof(T), SerializationOption.User)));
 
 			foreach (var method in serializationMethods)
 			{

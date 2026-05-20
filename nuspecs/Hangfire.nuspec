@@ -126,7 +126,7 @@ Hangfire.Core
 • Changed – Don't include file information in the `ExceptionDetails` property of a FailedState instance.
 • Changed – Switch back to `CancellationEvent` usage instead of `CancellationToken.WaitHandle`.
 • Fixed – Don't commit external transaction in the `BackgroundJobStateChanger` implementation.
-• Fixed – Use safe default serializer settings for Newtonsoft.Json 12.X and below.
+• Fixed – Use safe default serializer options for JSON serialization.
 • Project – Fix builds for the `net451` platform when using .NET 9.0.
 • Project – Significantly reduce execution time of unit tests in the `RecurringJobSchedulerFacts` class.
 • Project – Bump `Microsoft.CodeAnalysis.NetAnalyzers` package to version 9.0.0.
@@ -527,15 +527,10 @@ Hangfire.SqlServer.Msmq
 ]]>
     </releaseNotes>
     <dependencies>
-      <group targetFramework="net451">
+      <group targetFramework="net462">
         <dependency id="Hangfire.Core" version="[%version%]" />
         <dependency id="Hangfire.SqlServer" version="[%version%]" />
         <dependency id="Microsoft.Owin.Host.SystemWeb" version="3.0.0" />
-      </group>
-      <group targetFramework="netstandard1.3">
-        <dependency id="Hangfire.Core" version="[%version%]" />
-        <dependency id="Hangfire.SqlServer" version="[%version%]" />
-        <dependency id="Hangfire.AspNetCore" version="[%version%]" />
       </group>
       <group targetFramework="netstandard2.0">
         <dependency id="Hangfire.Core" version="[%version%]" />

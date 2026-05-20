@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire.
+// This file is part of Hangfire.
 // Copyright © 2020 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@ using System;
 using System.Text;
 using Hangfire.Annotations;
 using Hangfire.Common;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Hangfire
 {
@@ -46,15 +46,17 @@ namespace Hangfire
         }
 
         [NotNull]
-        [JsonProperty("e")]
+        [JsonPropertyName("e")]
         public string Type { get; }
 
         [CanBeNull]
-        [JsonProperty("m", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("m")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Message { get; }
 
         [CanBeNull]
-        [JsonProperty("i", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonPropertyName("i")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public ExceptionInfo InnerException { get; }
 
         public override string ToString()

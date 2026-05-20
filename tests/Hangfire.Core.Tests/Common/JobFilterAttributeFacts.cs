@@ -32,11 +32,11 @@ namespace Hangfire.Core.Tests.Common
         }        
 
         [Fact]
-        public void Order_Property_IsNotIncludedIntoSerializedForm_WhenDefaultValueIsUsed()
+        public void Order_Property_IsIncludedIntoSerializedForm_WhenDefaultValueIsUsed()
         {
             var attribute = new SampleJobAttribute();
             var serialized = SerializationHelper.Serialize(attribute);
-            Assert.DoesNotContain("Order", serialized);
+            Assert.Contains("\"Order\":-1", serialized);
         }
 
         [Fact]

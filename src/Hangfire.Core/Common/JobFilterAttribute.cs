@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -18,7 +18,7 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Hangfire.Common
 {
@@ -34,7 +34,7 @@ namespace Hangfire.Common
         [JsonIgnore]
         public bool AllowMultiple => AllowsMultiple(GetType());
 
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         [DefaultValue(JobFilter.DefaultOrder)]
         public int Order
         {

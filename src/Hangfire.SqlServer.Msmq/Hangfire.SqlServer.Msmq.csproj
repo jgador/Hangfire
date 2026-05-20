@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net451</TargetFramework>
+    <TargetFramework>net462</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RootNamespace>Hangfire.SqlServer.Msmq</RootNamespace>
   </PropertyGroup>

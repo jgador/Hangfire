@@ -620,21 +620,28 @@ where j.Id in @jobIds");
 
         private static Job DeserializeJob(string invocationData, string arguments, out InvocationData data, out JobLoadException exception)
         {
-            data = InvocationData.DeserializePayload(invocationData);
-
-            if (!String.IsNullOrEmpty(arguments))
-            {
-                data.Arguments = arguments;
-            }
+            data = null;
+            exception = null;
 
             try
             {
-                exception = null;
+                data = InvocationData.DeserializePayload(invocationData);
+
+                if (!String.IsNullOrEmpty(arguments))
+                {
+                    data.Arguments = arguments;
+                }
+
                 return data.DeserializeJob();
             }
             catch (JobLoadException ex)
             {
                 exception = ex;
+                return null;
+            }
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
+            {
+                exception = new JobLoadException("Could not load the job. See inner exception for the details.", ex);
                 return null;
             }
         }

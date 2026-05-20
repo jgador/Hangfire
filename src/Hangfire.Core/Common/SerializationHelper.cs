@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2019 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2019 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -15,13 +15,12 @@
 
 using System;
 using System.Globalization;
-using System.IO;
 using System.Reflection;
-using System.Runtime.ExceptionServices;
-using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Hangfire.Annotations;
-using Newtonsoft.Json;
 
 namespace Hangfire.Common
 {
@@ -33,27 +32,32 @@ namespace Hangfire.Common
         Internal,
 
         /// <summary>
-        /// For internal data using isolated settings with types information (<see cref="TypeNameHandling.Objects"/> setting) 
+        /// For internal data using isolated settings with type information
         /// that can't be changed from user code.
         /// </summary>
         TypedInternal,
 
         /// <summary>
-        /// For user data like arguments and parameters, configurable via <see cref="SerializationHelper.SetUserSerializerSettings"/>.
+        /// For user data like arguments and parameters, configurable via <see cref="SerializationHelper.SetUserSerializerOptions"/>.
         /// </summary>
         User
     }
 
     /// <summary>
     /// Provides methods to serialize/deserialize data with Hangfire default settings. 
-    /// Isolates internal serialization process from user interference including `JsonConvert.DefaultSettings` modification.
+    /// Isolates internal serialization process from user interference.
     /// </summary>
     public static class SerializationHelper
     {
-        private static readonly Lazy<JsonSerializerSettings> InternalSerializerSettings =
-            new Lazy<JsonSerializerSettings>(GetInternalSettings, LazyThreadSafetyMode.PublicationOnly);
+        private const string TypePropertyName = "$type";
 
-        private static JsonSerializerSettings _userSerializerSettings;
+        private static readonly Lazy<JsonSerializerOptions> InternalSerializerOptions =
+            new Lazy<JsonSerializerOptions>(GetInternalOptions, LazyThreadSafetyMode.PublicationOnly);
+
+        private static readonly Lazy<JsonSerializerOptions> DefaultUserSerializerOptions =
+            new Lazy<JsonSerializerOptions>(GetDefaultUserOptions, LazyThreadSafetyMode.PublicationOnly);
+
+        private static JsonSerializerOptions _userSerializerOptions;
 
         /// <summary>
         /// Serializes data with <see cref="SerializationOption.Internal"/> option.
@@ -69,7 +73,7 @@ namespace Hangfire.Common
         /// Use <see cref="SerializationOption.Internal"/> option to serialize internal data.
         /// Use <see cref="SerializationOption.TypedInternal"/> option if you need to store type information.
         /// Use <see cref="SerializationOption.User"/> option to serialize user data like arguments and parameters,
-        /// configurable via <see cref="SetUserSerializerSettings"/>.
+        /// configurable via <see cref="SetUserSerializerOptions"/>.
         /// </summary>
         public static string Serialize<T>([CanBeNull] T value, SerializationOption option)
         {
@@ -81,48 +85,14 @@ namespace Hangfire.Common
         /// Use <see cref="SerializationOption.Internal"/> option to serialize internal data.
         /// Use <see cref="SerializationOption.TypedInternal"/> option if you need to store type information.
         /// Use <see cref="SerializationOption.User"/> option to serialize user data like arguments and parameters,
-        /// configurable via <see cref="SetUserSerializerSettings"/>.
+        /// configurable via <see cref="SetUserSerializerOptions"/>.
         /// </summary>
         public static string Serialize([CanBeNull] object value, [CanBeNull] Type type, SerializationOption option)
         {
             if (value == null) return null;
 
-            if (GlobalConfiguration.HasCompatibilityLevel(CompatibilityLevel.Version_170))
-            {
-                var serializerSettings = GetSerializerSettings(option);
-
-                if (option == SerializationOption.User)
-                {
-                    var formatting = serializerSettings?.Formatting ?? Formatting.None;
-                    return JsonConvert.SerializeObject(value, type, formatting, serializerSettings);
-                }
-
-                // For internal purposes we should ensure that JsonConvert.DefaultSettings don't affect
-                // the serialization process, and the only way is to create a custom serializer.
-                using var stringWriter = new StringWriter(new StringBuilder(256), CultureInfo.InvariantCulture);
-
-                using (var jsonWriter = new JsonTextWriter(stringWriter))
-                {
-                    var serializer = JsonSerializer.Create(serializerSettings);
-                    serializer.Serialize(jsonWriter, value, type);
-                }
-
-                return stringWriter.ToString();
-            }
-            else
-            {
-                // Previously almost all the data was serialized with the user settings, except
-                // when we explicitly needed to persist the type information. In the latter case
-                // custom settings passed to serializer, identical to TypedInternal.
-                var serializerSettings = option == SerializationOption.TypedInternal
-                    ? GetLegacyTypedSerializerSettings()
-                    : GetUserSerializerSettings();
-
-                // JsonConvert is used here, because previously global default settings affected
-                // the serialization process.
-                var formatting = serializerSettings?.Formatting ?? Formatting.None;
-                return JsonConvert.SerializeObject(value, type, formatting, serializerSettings);
-            }
+            var serializerOptions = GetSerializerOptions(option);
+            return JsonSerializer.Serialize(value, type ?? value.GetType(), serializerOptions);
         }
 
         /// <summary>
@@ -139,48 +109,14 @@ namespace Hangfire.Common
         /// Use <see cref="SerializationOption.Internal"/> to deserialize internal data.
         /// Use <see cref="SerializationOption.TypedInternal"/> if deserializable internal data has type names information.
         /// Use <see cref="SerializationOption.User"/> to deserialize user data like arguments and parameters, 
-        /// configurable via <see cref="SetUserSerializerSettings"/>.
+        /// configurable via <see cref="SetUserSerializerOptions"/>.
         /// </summary>
         public static object Deserialize([CanBeNull] string value, [NotNull] Type type, SerializationOption option)
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
             if (value == null) return null;
 
-            Exception exception = null;
-
-            if (option != SerializationOption.User)
-            {
-                var serializerSettings = GetSerializerSettings(option);
-
-                try
-                {
-                    // For internal purposes we should ensure that JsonConvert.DefaultSettings don't affect
-                    // the deserialization process, and the only way is to create a custom serializer.
-                    using var stringReader = new StringReader(value);
-                    using var jsonReader = new JsonTextReader(stringReader);
-
-                    var serializer = JsonSerializer.Create(serializerSettings);
-                    return serializer.Deserialize(jsonReader, type);
-                }
-                catch (Exception ex) when (ex.IsCatchableExceptionType())
-                {
-                    // If there was an exception, we should try to deserialize the value using user-based
-                    // settings, because prior to 1.7.0 they were used for almost everything. So we are saving
-                    // the exception to re-throw it if even serializer based on user settings couldn't handle
-                    // our value. In that case an original exception should be thrown as it is the reason.
-                    exception = ex;
-                }
-            }
-
-            try
-            {
-                return JsonConvert.DeserializeObject(value, type, GetSerializerSettings(SerializationOption.User));
-            }
-            catch (Exception ex) when (exception != null && ex.IsCatchableExceptionType())
-            {
-                ExceptionDispatchInfo.Capture(exception).Throw();
-                throw;
-            }
+            return JsonSerializer.Deserialize(value, type, GetSerializerOptions(option));
         }
 
         /// <summary>
@@ -198,7 +134,7 @@ namespace Hangfire.Common
         /// Use <see cref="SerializationOption.Internal"/> to deserialize internal data.
         /// Use <see cref="SerializationOption.TypedInternal"/> if deserializable internal data has type names information.
         /// Use <see cref="SerializationOption.User"/> to deserialize user data like arguments and parameters, 
-        /// configurable via <see cref="SetUserSerializerSettings"/>.
+        /// configurable via <see cref="SetUserSerializerOptions"/>.
         /// </summary>
         public static T Deserialize<T>([CanBeNull] string value, SerializationOption option)
         {
@@ -206,68 +142,308 @@ namespace Hangfire.Common
             return (T) Deserialize(value, typeof(T), option);
         }
 
-        internal static JsonSerializerSettings GetInternalSettings()
+        internal static JsonSerializerOptions GetInternalOptions()
         {
-            var serializerSettings = new JsonSerializerSettings();
+            var serializerOptions = new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                MaxDepth = 128,
+                PropertyNameCaseInsensitive = true
+            };
 
-            SetSimpleTypeNameAssemblyFormat(serializerSettings);
+            serializerOptions.Converters.Add(new TypeJsonConverter());
+            serializerOptions.Converters.Add(new TypeMetadataJsonConverterFactory());
 
-            serializerSettings.TypeNameHandling = TypeNameHandling.Auto;
-            serializerSettings.DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate;
-            serializerSettings.NullValueHandling = NullValueHandling.Ignore;
-            serializerSettings.CheckAdditionalContent = true; // Default option in JsonConvert.Deserialize method
-            serializerSettings.MaxDepth = 128;
-#if NETSTANDARD2_0
-            serializerSettings.SerializationBinder = new TypeHelperSerializationBinder();
-#else
-            serializerSettings.Binder = new TypeHelperSerializationBinder();
-#endif
-
-            return serializerSettings;
+            return serializerOptions;
         }
 
-        internal static void SetUserSerializerSettings([CanBeNull] JsonSerializerSettings settings)
+        internal static void SetUserSerializerOptions([CanBeNull] JsonSerializerOptions options)
         {
-            Volatile.Write(ref _userSerializerSettings, settings);
+            Volatile.Write(ref _userSerializerOptions, options == null ? null : WithUserConverters(options));
         }
 
-        private static JsonSerializerSettings GetLegacyTypedSerializerSettings()
+        private static JsonSerializerOptions GetDefaultUserOptions()
         {
-            var serializerSettings = new JsonSerializerSettings();
-            serializerSettings.TypeNameHandling = TypeNameHandling.Objects;
-            serializerSettings.MaxDepth = 128;
+            var serializerOptions = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                MaxDepth = 128,
+                PropertyNameCaseInsensitive = true
+            };
 
-            SetSimpleTypeNameAssemblyFormat(serializerSettings);
+            AddUserConverters(serializerOptions);
 
-            return serializerSettings;
+            return serializerOptions;
         }
 
-        private static void SetSimpleTypeNameAssemblyFormat(JsonSerializerSettings serializerSettings)
-        {
-            // Setting TypeNameAssemblyFormatHandling to Simple. Using reflection, because latest versions
-            // of Newtonsoft.Json contain breaking changes.
-            var typeNameAssemblyFormatHandling =
-                typeof(JsonSerializerSettings).GetRuntimeProperty("TypeNameAssemblyFormatHandling");
-            var typeNameAssemblyFormat = typeof(JsonSerializerSettings).GetRuntimeProperty("TypeNameAssemblyFormat");
-
-            var property = typeNameAssemblyFormatHandling ?? typeNameAssemblyFormat;
-            property.SetValue(serializerSettings, Enum.Parse(property.PropertyType, "Simple"));
-        }
-
-        private static JsonSerializerSettings GetSerializerSettings(SerializationOption serializationOption)
+        private static JsonSerializerOptions GetSerializerOptions(SerializationOption serializationOption)
         {
             switch (serializationOption)
             {
                 case SerializationOption.Internal:
-                case SerializationOption.TypedInternal: return InternalSerializerSettings.Value;
-                case SerializationOption.User: return GetUserSerializerSettings();
+                case SerializationOption.TypedInternal: return InternalSerializerOptions.Value;
+                case SerializationOption.User: return GetUserSerializerOptions();
                 default: throw new ArgumentOutOfRangeException(nameof(serializationOption), serializationOption, null);
             }
         }
 
-        private static JsonSerializerSettings GetUserSerializerSettings()
+        private static JsonSerializerOptions GetUserSerializerOptions()
         {
-            return Volatile.Read(ref _userSerializerSettings);
+            return Volatile.Read(ref _userSerializerOptions) ?? DefaultUserSerializerOptions.Value;
+        }
+
+        private sealed class TypeJsonConverter : JsonConverter<Type>
+        {
+            public override Type Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType == JsonTokenType.Null) return null;
+
+                if (reader.TokenType != JsonTokenType.String)
+                {
+                    throw new JsonException($"Expected a JSON string when reading {nameof(Type)}.");
+                }
+
+                var typeName = reader.GetString();
+                return typeName == null ? null : TypeHelper.CurrentTypeResolver(typeName);
+            }
+
+            public override void Write(Utf8JsonWriter writer, Type value, JsonSerializerOptions options)
+            {
+                if (value == null)
+                {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                writer.WriteStringValue(TypeHelper.CurrentTypeSerializer(value));
+            }
+        }
+
+        private sealed class InferredObjectJsonConverter : JsonConverter<object>
+        {
+            public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                switch (reader.TokenType)
+                {
+                    case JsonTokenType.Null:
+                        return null;
+                    case JsonTokenType.String:
+                        return reader.GetString();
+                    case JsonTokenType.True:
+                        return true;
+                    case JsonTokenType.False:
+                        return false;
+                    case JsonTokenType.Number:
+                        if (reader.TryGetInt64(out var longValue)) return longValue;
+                        if (reader.TryGetDecimal(out var decimalValue)) return decimalValue;
+                        return reader.GetDouble();
+                    case JsonTokenType.StartObject:
+                    case JsonTokenType.StartArray:
+                        using (var document = JsonDocument.ParseValue(ref reader))
+                        {
+                            return document.RootElement.Clone();
+                        }
+                    default:
+                        throw new JsonException($"Unexpected token '{reader.TokenType}' when reading object.");
+                }
+            }
+
+            public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+            {
+                if (value == null)
+                {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                JsonSerializer.Serialize(writer, value, value.GetType(), options);
+            }
+        }
+
+        private sealed class CultureInfoJsonConverter : JsonConverter<CultureInfo>
+        {
+            public override CultureInfo Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType == JsonTokenType.Null) return null;
+                if (reader.TokenType != JsonTokenType.String)
+                {
+                    throw new JsonException($"Expected a JSON string when reading {nameof(CultureInfo)}.");
+                }
+
+                var cultureName = reader.GetString();
+                return String.IsNullOrEmpty(cultureName) ? CultureInfo.InvariantCulture : new CultureInfo(cultureName);
+            }
+
+            public override void Write(Utf8JsonWriter writer, CultureInfo value, JsonSerializerOptions options)
+            {
+                if (value == null)
+                {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                writer.WriteStringValue(value.Name);
+            }
+        }
+
+        private sealed class TypeMetadataJsonConverterFactory : JsonConverterFactory
+        {
+            public override bool CanConvert(Type typeToConvert)
+            {
+                var typeInfo = typeToConvert.GetTypeInfo();
+                return typeToConvert == typeof(object) || typeInfo.IsInterface || typeInfo.IsAbstract;
+            }
+
+            public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+            {
+                return new TypeMetadataJsonConverter(typeToConvert);
+            }
+        }
+
+        private sealed class TypeMetadataJsonConverter : JsonConverter<object>
+        {
+            private readonly Type _declaredType;
+
+            public TypeMetadataJsonConverter(Type declaredType)
+            {
+                _declaredType = declaredType;
+            }
+
+            public override bool CanConvert(Type typeToConvert)
+            {
+                return typeToConvert == _declaredType;
+            }
+
+            public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                using var document = JsonDocument.ParseValue(ref reader);
+                var element = document.RootElement;
+
+                if (element.ValueKind == JsonValueKind.Null)
+                {
+                    return null;
+                }
+
+                if (element.ValueKind == JsonValueKind.Object &&
+                    element.TryGetProperty(TypePropertyName, out var typeProperty))
+                {
+                    var typeName = typeProperty.GetString();
+                    if (String.IsNullOrEmpty(typeName))
+                    {
+                        throw new JsonException($"The '{TypePropertyName}' metadata property can't be empty.");
+                    }
+
+                    var actualType = TypeHelper.CurrentTypeResolver(typeName);
+                    if (_declaredType != typeof(object) &&
+                        !_declaredType.GetTypeInfo().IsAssignableFrom(actualType.GetTypeInfo()))
+                    {
+                        throw new JsonException(
+                            $"The type '{actualType}' is not assignable to '{_declaredType}'.");
+                    }
+
+                    return JsonSerializer.Deserialize(element.GetRawText(), actualType, options);
+                }
+
+                if (_declaredType == typeof(object))
+                {
+                    return JsonSerializer.Deserialize<JsonElement>(element.GetRawText(), options);
+                }
+
+                throw new JsonException($"The '{TypePropertyName}' metadata property is required for '{_declaredType}'.");
+            }
+
+            public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+            {
+                if (value == null)
+                {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                var runtimeType = value.GetType();
+
+                if (!ShouldWriteMetadata(runtimeType))
+                {
+                    JsonSerializer.Serialize(writer, value, runtimeType, options);
+                    return;
+                }
+
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(value, runtimeType, options);
+                using var document = JsonDocument.Parse(bytes);
+                var element = document.RootElement;
+
+                if (element.ValueKind != JsonValueKind.Object)
+                {
+                    element.WriteTo(writer);
+                    return;
+                }
+
+                writer.WriteStartObject();
+                writer.WriteString(TypePropertyName, TypeHelper.SimpleAssemblyTypeSerializer(runtimeType));
+
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (property.NameEquals(TypePropertyName)) continue;
+                    property.WriteTo(writer);
+                }
+
+                writer.WriteEndObject();
+            }
+
+            private static bool ShouldWriteMetadata(Type runtimeType)
+            {
+                var typeInfo = runtimeType.GetTypeInfo();
+                return !typeInfo.IsPrimitive &&
+                       runtimeType != typeof(string) &&
+                       runtimeType != typeof(decimal) &&
+                       runtimeType != typeof(DateTime) &&
+                       runtimeType != typeof(DateTimeOffset) &&
+                       runtimeType != typeof(Guid);
+            }
+        }
+
+        private static JsonSerializerOptions WithUserConverters(JsonSerializerOptions options)
+        {
+            if (HasConverterFor<Type>(options) &&
+                HasConverterFor<object>(options) &&
+                HasConverterFor<CultureInfo>(options))
+            {
+                return options;
+            }
+
+            var serializerOptions = new JsonSerializerOptions(options);
+            AddUserConverters(serializerOptions);
+            return serializerOptions;
+        }
+
+        private static void AddUserConverters(JsonSerializerOptions options)
+        {
+            if (!HasConverterFor<Type>(options))
+            {
+                options.Converters.Add(new TypeJsonConverter());
+            }
+
+            if (!HasConverterFor<object>(options))
+            {
+                options.Converters.Add(new InferredObjectJsonConverter());
+            }
+
+            if (!HasConverterFor<CultureInfo>(options))
+            {
+                options.Converters.Add(new CultureInfoJsonConverter());
+            }
+        }
+
+        private static bool HasConverterFor<T>(JsonSerializerOptions options)
+        {
+            var type = typeof(T);
+            foreach (var converter in options.Converters)
+            {
+                if (converter.CanConvert(type)) return true;
+            }
+
+            return false;
         }
     }
 }

@@ -1,7 +1,7 @@
-﻿using System;
+using System.Text.Json;
+using System;
 using Hangfire.Common;
 using Hangfire.States;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Hangfire.Core.Tests.States
@@ -67,26 +67,12 @@ namespace Hangfire.Core.Tests.States
             Assert.False(state.IgnoreJobLoadException);
         }
 
-        [DataCompatibilityRangeFact(MaxExcludingLevel = CompatibilityLevel.Version_170)]
-        public void JsonSerialize_ReturnsCorrectString_Before170()
+        [DataCompatibilityRangeFact]
+        public void JsonSerialize_ReturnsCorrectString()
         {
             var dateTime = DateTime.UtcNow;
             var state = new ScheduledState(dateTime);
-            var convertedDateTime = JsonConvert.SerializeObject(dateTime);
-
-            var serialized = SerializationHelper.Serialize<IState>(state, SerializationOption.TypedInternal);
-
-            Assert.Equal(
-                "{\"$type\":\"Hangfire.States.ScheduledState, Hangfire.Core\",\"EnqueueAt\":" + convertedDateTime + ",\"Reason\":null}",
-                serialized);
-        }
-
-        [DataCompatibilityRangeFact(MinLevel = CompatibilityLevel.Version_170)]
-        public void JsonSerialize_ReturnsCorrectString_After170()
-        {
-            var dateTime = DateTime.UtcNow;
-            var state = new ScheduledState(dateTime);
-            var convertedDateTime = JsonConvert.SerializeObject(dateTime);
+            var convertedDateTime = JsonSerializer.Serialize(dateTime);
 
             var serialized = SerializationHelper.Serialize<IState>(state, SerializationOption.TypedInternal);
 

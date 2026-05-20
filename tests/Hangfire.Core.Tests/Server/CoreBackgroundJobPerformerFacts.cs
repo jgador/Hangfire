@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -99,53 +98,6 @@ namespace Hangfire.Core.Tests.Server
             performer.Perform(_context.Object);
 
             // Assert - see the `MethodWithArguments` method.
-            Assert.True(_methodInvoked);
-        }
-
-#if !NETCOREAPP1_0
-        [Fact, StaticLock]
-        public void Perform_PassesCorrectDateTime_IfItWasSerialized_UsingTypeConverter()
-        {
-            // Arrange
-            _methodInvoked = false;
-            var typeConverter = TypeDescriptor.GetConverter(typeof(DateTime));
-            var convertedDate = typeConverter.ConvertToInvariantString(SomeDateTime);
-
-            var type = typeof(CoreBackgroundJobPerformerFacts);
-            var method = type.GetMethod("MethodWithDateTimeArgument");
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            _context.BackgroundJob.Job = new Job(type, method, new [] { convertedDate });
-#pragma warning restore CS0618 // Type or member is obsolete
-            var performer = CreatePerformer();
-
-            // Act
-            performer.Perform(_context.Object);
-
-            // Assert - see also the `MethodWithDateTimeArgument` method.
-            Assert.True(_methodInvoked);
-        }
-#endif
-
-        [Fact, StaticLock]
-        public void Perform_PassesCorrectDateTime_IfItWasSerialized_UsingOldFormat()
-        {
-            // Arrange
-            _methodInvoked = false;
-            var convertedDate = SomeDateTime.ToString("MM/dd/yyyy HH:mm:ss.ffff");
-
-            var type = typeof(CoreBackgroundJobPerformerFacts);
-            var method = type.GetMethod("MethodWithDateTimeArgument");
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            _context.BackgroundJob.Job = new Job(type, method, new [] { convertedDate });
-#pragma warning restore CS0618 // Type or member is obsolete
-            var performer = CreatePerformer();
-
-            // Act
-            performer.Perform(_context.Object);
-
-            // Assert - see also the `MethodWithDateTimeArgument` method.
             Assert.True(_methodInvoked);
         }
 

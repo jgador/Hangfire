@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using Hangfire.Common;
-using Newtonsoft.Json;
 using Xunit.Sdk;
 
 namespace Hangfire.Core.Tests
@@ -20,12 +19,9 @@ namespace Hangfire.Core.Tests
         private static void ClearSettings()
         {
 #pragma warning disable 618
-            JobHelper.SetSerializerSettings(null);
+            JobHelper.SetSerializerOptions(null);
 #pragma warning restore 618
-            SerializationHelper.SetUserSerializerSettings(null);
-#if !NET452 && !NET461
-            JsonConvert.DefaultSettings = null;
-#endif
+            SerializationHelper.SetUserSerializerOptions(null);
         }
     }
 }

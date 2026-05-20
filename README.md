@@ -124,6 +124,11 @@ Related Projects
 
 Please see the [Extensions](https://www.hangfire.io/extensions.html) page on the official site.
 
+Serialization compatibility
+---------------------------
+
+This fork uses `System.Text.Json` for Hangfire's internal and user-data JSON serialization. It is a forward-only change: Newtonsoft.Json-formatted payloads already stored in job storage are not read through a compatibility fallback. Before switching an existing database, drain or delete old jobs, or run your own one-time migration that rewrites invocation payloads, job parameters, and state data to the new `System.Text.Json` format.
+
 Building the sources
 ---------------------
 

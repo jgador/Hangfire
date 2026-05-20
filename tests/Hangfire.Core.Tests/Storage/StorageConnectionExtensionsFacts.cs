@@ -23,7 +23,7 @@ namespace Hangfire.Core.Tests.Storage
             _connection.Setup(o => o.GetAllEntriesFromHash("recurring-job:1")).Returns(new Dictionary<string, string>
                 {
                     { "Cron", "A"},
-                    { "Job", @"{""Type"":""ConsoleApplication1.CommandHandler, ConsoleApplication1"",""Method"":""Handle"",""ParameterTypes"":""[\""string\""]"",""Arguments"":""[\""Text\""]""}"},
+                    { "Job", @"{""t"":""ConsoleApplication1.CommandHandler, ConsoleApplication1"",""m"":""Handle"",""p"":[""System.String""],""a"":[""\""Text\""""]}"},
                     { "LastJobId", string.Empty}
                 }).Verifiable();
 
@@ -67,7 +67,7 @@ namespace Hangfire.Core.Tests.Storage
 		    _connection.Setup(o => o.GetAllEntriesFromHash("recurring-job:1")).Returns(new Dictionary<string, string>
 		    {
 			    { "Cron", "A"},
-			    { "Job", @"{""Type"":""ConsoleApplication1.CommandHandler, ConsoleApplication1"",""Method"":""Handle"",""ParameterTypes"":""[\""string\""]"",""Arguments"":""[\""Text\""]""}"},
+			    { "Job", @"{""t"":""ConsoleApplication1.CommandHandler, ConsoleApplication1"",""m"":""Handle"",""p"":[""System.String""],""a"":[""\""Text\""""]}"},
 				{ "NextExecution", null },
 			    { "LastExecution", null },
 			    { "CreatedAt", null }

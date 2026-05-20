@@ -21,7 +21,7 @@ namespace ConsoleSample
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseIgnoredAssemblyVersionTypeResolver()
-                .UseRecommendedSerializerSettings()
+                .UseRecommendedSerializerOptions()
                 .UseResultsInContinuations()
                 .UseJobDetailsRenderer(10, dto => throw new InvalidOperationException())
                 .UseJobDetailsRenderer(10, dto => new NonEscapedString("<h4>Hello, world!</h4>"))

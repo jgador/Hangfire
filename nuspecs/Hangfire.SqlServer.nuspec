@@ -122,13 +122,7 @@ Please see https://docs.hangfire.io/en/latest/upgrade-guides/upgrading-to-hangfi
 ]]>
     </releaseNotes>
     <dependencies>
-      <group targetFramework="net451">
-        <dependency id="Hangfire.Core" version="[%version%]" />
-      </group>
-      
-      <group targetFramework="netstandard1.3">
-        <dependency id="NETStandard.Library" version="1.6.0" />
-        <dependency id="System.Data.Common" version="4.1.0" />
+      <group targetFramework="net462">
         <dependency id="Hangfire.Core" version="[%version%]" />
       </group>
 
@@ -138,11 +132,8 @@ Please see https://docs.hangfire.io/en/latest/upgrade-guides/upgrading-to-hangfi
     </dependencies>
   </metadata>
   <files>
-    <file src="net451\Hangfire.SqlServer.dll" target="lib\net451" />
-    <file src="net451\Hangfire.SqlServer.xml" target="lib\net451" />
-    
-    <file src="netstandard1.3\Hangfire.SqlServer.dll" target="lib\netstandard1.3" />
-    <file src="netstandard1.3\Hangfire.SqlServer.xml" target="lib\netstandard1.3" />
+    <file src="net462\Hangfire.SqlServer.dll" target="lib\net462" />
+    <file src="net462\Hangfire.SqlServer.xml" target="lib\net462" />
 
     <file src="netstandard2.0\Hangfire.SqlServer.dll" target="lib\netstandard2.0" />
     <file src="netstandard2.0\Hangfire.SqlServer.xml" target="lib\netstandard2.0" />

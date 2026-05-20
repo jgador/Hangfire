@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -16,18 +16,14 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-#if !NETSTANDARD1_3
-using System.ComponentModel;
-#endif
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Server;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Hangfire.Storage
 {
@@ -76,7 +72,7 @@ namespace Hangfire.Storage
         public string ParameterTypes { get; }
         public string Arguments { get; set; }
 
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string Queue { get; }
 
         [Obsolete("Please use DeserializeJob() method instead. Will be removed in 2.0.0 for clarity.")]
@@ -140,89 +136,47 @@ namespace Hangfire.Storage
         {
             if (payload == null) throw new ArgumentNullException(nameof(payload));
 
-            JobPayload jobPayload = null;
-            Exception exception = null;
-
-            try
+            var jobPayload = SerializationHelper.Deserialize<JobPayload>(payload);
+            if (jobPayload == null)
             {
-                jobPayload = SerializationHelper.Deserialize<JobPayload>(payload);
-                if (jobPayload == null)
-                {
-                    throw new InvalidOperationException("Deserialize<JobPayload> returned `null` for a non-null payload.");
-                }
-            }
-            catch (Exception ex) when (ex.IsCatchableExceptionType())
-            {
-                exception = ex;
+                throw new InvalidOperationException("Deserialize<JobPayload> returned `null` for a non-null payload.");
             }
 
-            if (exception == null && jobPayload.TypeName != null && jobPayload.MethodName != null)
+            if (jobPayload.TypeName == null || jobPayload.MethodName == null)
             {
-                return new InvocationData(
-                    jobPayload.TypeName,
-                    jobPayload.MethodName,
-                    SerializationHelper.Serialize(jobPayload.ParameterTypes),
-                    SerializationHelper.Serialize(jobPayload.Arguments),
-                    jobPayload.Queue);
+                throw new InvalidOperationException("Payload must contain type and method names.");
             }
 
-            var data = SerializationHelper.Deserialize<InvocationData>(payload);
-            if (data == null)
-            {
-                throw new InvalidOperationException("Deserialize<InvocationData> returned `null` for a non-null payload.");
-            }
-
-            if (data.Type == null || data.Method == null)
-            {
-                data = SerializationHelper.Deserialize<InvocationData>(payload, SerializationOption.User);
-            }
-
-            return data;
+            return new InvocationData(
+                jobPayload.TypeName,
+                jobPayload.MethodName,
+                SerializationHelper.Serialize(jobPayload.ParameterTypes),
+                SerializationHelper.Serialize(jobPayload.Arguments),
+                jobPayload.Queue);
         }
 
         public string SerializePayload(bool excludeArguments = false)
         {
-            if (GlobalConfiguration.HasCompatibilityLevel(CompatibilityLevel.Version_170))
+            var parameterTypes = DeserializeParameterTypesArray(TypeHelper.CurrentTypeSerializer, ParameterTypes);
+            var arguments = excludeArguments ? null : SerializationHelper.Deserialize<string[]>(Arguments);
+
+            return SerializationHelper.Serialize(new JobPayload
             {
-                var parameterTypes = DeserializeParameterTypesArray(TypeHelper.CurrentTypeSerializer, ParameterTypes);
-                var arguments = excludeArguments ? null : SerializationHelper.Deserialize<string[]>(Arguments);
-
-                return SerializationHelper.Serialize(new JobPayload
-                {
-                    TypeName = Type,
-                    MethodName = Method,
-                    ParameterTypes = parameterTypes?.Length > 0 ? parameterTypes : null,
-                    Arguments = arguments?.Length > 0 ? arguments : null,
-                    Queue = Queue
-                });
-            }
-
-            return SerializationHelper.Serialize(excludeArguments
-                ? new InvocationData(Type, Method, ParameterTypes, null, Queue)
-                : this);
+                TypeName = Type,
+                MethodName = Method,
+                ParameterTypes = parameterTypes?.Length > 0 ? parameterTypes : null,
+                Arguments = arguments?.Length > 0 ? arguments : null,
+                Queue = Queue
+            });
         }
 
         private static string[] DeserializeParameterTypesArray(Func<Type, string> typeSerializer, string parameterTypes)
         {
+            if (String.IsNullOrEmpty(parameterTypes)) return [];
+
             return ParameterTypesDeserializerCache.GetOrAdd(Tuple.Create(typeSerializer, parameterTypes), static tuple =>
             {
-                try
-                {
-                    return SerializationHelper.Deserialize<string[]>(tuple.Item2);
-                }
-                catch (Exception outerException) when (outerException.IsCatchableExceptionType())
-                {
-                    try
-                    {
-                        var types = SerializationHelper.Deserialize<Type[]>(tuple.Item2);
-                        return types.Select(tuple.Item1).ToArray();
-                    }
-                    catch (Exception ex) when (ex.IsCatchableExceptionType())
-                    {
-                        ExceptionDispatchInfo.Capture(outerException).Throw();
-                        throw;
-                    }
-                }
+                return SerializationHelper.Deserialize<string[]>(tuple.Item2);
             });
         }
 
@@ -240,12 +194,7 @@ namespace Hangfire.Storage
 
                 if (argument != null)
                 {
-                    if (!GlobalConfiguration.HasCompatibilityLevel(CompatibilityLevel.Version_170) &&
-                        argument is DateTime dateTime)
-                    {
-                        value = dateTime.ToString("o", CultureInfo.InvariantCulture);
-                    }
-                    else if (argument is CancellationToken)
+                    if (argument is CancellationToken)
                     {
                         // CancellationToken type instances are substituted with ShutdownToken 
                         // during the background job performance, so we don't need to store 
@@ -360,91 +309,27 @@ namespace Hangfire.Storage
 
         private static object DeserializeArgument(string argument, Type type)
         {
-            object value;
-            try
-            {
-                value = SerializationHelper.Deserialize(argument, type, SerializationOption.User);
-            }
-            catch (Exception jsonException) when (jsonException.IsCatchableExceptionType())
-            {
-                if (type == typeof(object))
-                {
-                    // Special case for handling object types, because string can not
-                    // be converted to object type.
-                    value = argument;
-                }
-                else if ((type == typeof(DateTime) || type == typeof(DateTime?)) && ParseDateTimeArgument(argument, out var dateTime))
-                {
-                    value = dateTime;
-                }
-                else
-                {
-#if !NETSTANDARD1_3
-                    try
-                    {
-                        var converter = TypeDescriptor.GetConverter(type);
-
-                        // ReferenceConverter can't correctly convert the serialized
-                        // data. This may happen when FromJson method threw an exception,
-                        // we should rethrow it instead of trying to deserialize.
-                        if (converter.GetType() == typeof(ReferenceConverter))
-                        {
-                            ExceptionDispatchInfo.Capture(jsonException).Throw();
-                            throw;
-                        }
-
-                        value = converter.ConvertFromInvariantString(argument);
-                    }
-                    catch (Exception ex) when (ex.IsCatchableExceptionType())
-                    {
-                        ExceptionDispatchInfo.Capture(jsonException).Throw();
-                        throw;
-                    }
-#else
-                    throw;
-#endif
-                }
-            }
-            return value;
-        }
-
-        internal static bool ParseDateTimeArgument(string argument, out DateTime value)
-        {
-            var result = DateTime.TryParseExact(
-                argument,
-                "MM/dd/yyyy HH:mm:ss.ffff",
-                CultureInfo.CurrentCulture,
-                DateTimeStyles.None,
-                out var dateTime);
-
-            if (!result)
-            {
-                result = DateTime.TryParse(
-                    argument,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.RoundtripKind,
-                    out dateTime);
-            }
-
-            value = dateTime;
-            return result;
+            return SerializationHelper.Deserialize(argument, type, SerializationOption.User);
         }
 
         private sealed class JobPayload
         {
-            [JsonProperty("t")]
+            [JsonPropertyName("t")]
             public string TypeName { get; set; }
 
-            [JsonProperty("m")]
+            [JsonPropertyName("m")]
             public string MethodName { get; set; }
 
-            [JsonProperty("p", NullValueHandling = NullValueHandling.Ignore)]
+            [JsonPropertyName("p")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] ParameterTypes { get; set; }
 
-            [JsonProperty("a", NullValueHandling = NullValueHandling.Ignore)]
+            [JsonPropertyName("a")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] Arguments { get; set; }
 
-            [JsonProperty("q", NullValueHandling = NullValueHandling.Ignore)]
+            [JsonPropertyName("q")]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string Queue { get; set; }
         }
 

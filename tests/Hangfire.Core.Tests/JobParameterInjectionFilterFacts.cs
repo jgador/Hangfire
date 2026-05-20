@@ -1,9 +1,9 @@
-﻿using System;
+using System.Text.Json;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Hangfire.Common;
 using Hangfire.Server;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Hangfire.Core.Tests

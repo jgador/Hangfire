@@ -1,6 +1,5 @@
-﻿using Hangfire.Common;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using System.Text.Json;
+using Hangfire.Common;
 using Xunit;
 
 namespace Hangfire.Core.Tests
@@ -8,11 +7,11 @@ namespace Hangfire.Core.Tests
     public class GloabalConfigurationExtensionsFacts
     {
         [Fact, CleanSerializerSettings]
-        public void UseSerializationSettings_AffectSerializationWithUserSettings()
+        public void UseSerializationOptions_AffectSerializationWithUserOptions()
         {
-            GlobalConfiguration.Configuration.UseSerializerSettings(new JsonSerializerSettings
+            GlobalConfiguration.Configuration.UseSerializerOptions(new JsonSerializerOptions
             {
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
             var result = SerializationHelper.Serialize(new CustomClass { StringProperty = "Value" }, SerializationOption.User);
@@ -20,11 +19,11 @@ namespace Hangfire.Core.Tests
         }
 
         [Fact, CleanSerializerSettings]
-        public void UseSerializationSettingsWithCallback_AffectSerializationWithUserSettings()
+        public void UseSerializationOptionsWithCallback_AffectSerializationWithUserOptions()
         {
-            GlobalConfiguration.Configuration.UseRecommendedSerializerSettings(settings =>
+            GlobalConfiguration.Configuration.UseRecommendedSerializerOptions(options =>
             {
-                settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             });
 
             var result = SerializationHelper.Serialize(new CustomClass { StringProperty = "Value" }, SerializationOption.User);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Hangfire.Common;
 using Hangfire.States;
 using Xunit;
@@ -20,21 +20,8 @@ namespace Hangfire.Core.Tests.States
             Assert.Equal(AwaitingState.StateName, state.Name);
         }
 
-        [DataCompatibilityRangeFact(MaxExcludingLevel = CompatibilityLevel.Version_170)]
-        public void SerializeData_ReturnsCorrectData_Before170()
-        {
-            var state = CreateState();
-
-            var data = state.SerializeData();
-
-            Assert.Equal(state.ParentId, data["ParentId"]);
-            Assert.Equal("{\"$type\":\"Hangfire.States.EnqueuedState, Hangfire.Core\",\"Queue\":\"default\",\"Reason\":null}", data["NextState"]);
-            Assert.Equal(state.Options.ToString("G"), data["Options"]);
-            Assert.Equal(state.Expiration.ToString(), data["Expiration"]);
-        }
-
-        [DataCompatibilityRangeFact(MinLevel = CompatibilityLevel.Version_170)]
-        public void SerializeData_ReturnsCorrectData_After170()
+        [DataCompatibilityRangeFact]
+        public void SerializeData_ReturnsCorrectData()
         {
             var state = CreateState();
 
@@ -60,32 +47,8 @@ namespace Hangfire.Core.Tests.States
             Assert.False(state.IgnoreJobLoadException);
         }
 
-        [Fact, CleanSerializerSettings]
-        public void SerializeData_HandlesChangingProcessOfInternalDataSerialization()
-        {
-            SerializationHelper.SetUserSerializerSettings(SerializerSettingsHelper.DangerousSettings);
-
-            var nextStateSerialized = SerializationHelper.Serialize(new EnqueuedState(), SerializationOption.User);
-
-            var nextState = SerializationHelper.Deserialize<IState>(nextStateSerialized, SerializationOption.TypedInternal) as EnqueuedState;
-            Assert.NotNull(nextState);
-            Assert.NotEqual(default(DateTime), nextState.EnqueuedAt);
-        }
-
-        [DataCompatibilityRangeFact(MaxExcludingLevel = CompatibilityLevel.Version_170)]
-        public void JsonSerialize_ReturnsCorrectString_Before170()
-        {
-            var state = new AwaitingState("parent");
-
-            var serialized = SerializationHelper.Serialize<IState>(state, SerializationOption.TypedInternal);
-
-            Assert.Equal(
-                "{\"$type\":\"Hangfire.States.AwaitingState, Hangfire.Core\",\"ParentId\":\"parent\",\"NextState\":{\"$type\":\"Hangfire.States.EnqueuedState, Hangfire.Core\",\"Queue\":\"default\",\"Reason\":null},\"Options\":0,\"Reason\":null}",
-                serialized);
-        }
-
-        [DataCompatibilityRangeFact(MinLevel = CompatibilityLevel.Version_170)]
-        public void JsonSerialize_ReturnsCorrectString_After170()
+        [DataCompatibilityRangeFact]
+        public void JsonSerialize_ReturnsCorrectString()
         {
             var state = new AwaitingState("parent");
 

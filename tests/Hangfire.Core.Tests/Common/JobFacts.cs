@@ -1,6 +1,6 @@
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
@@ -11,7 +11,6 @@ using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Server;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
 // ReSharper disable LocalizableElement
@@ -246,7 +245,7 @@ namespace Hangfire.Core.Tests.Common
         public void FromExpression_ConvertsDateTimeRepresentation_ToIso8601Format()
         {
             var date = new DateTime(2014, 5, 30, 12, 0, 0, 777);
-            var expected = date.ToString("o");
+            var expected = JsonSerializer.Serialize(date);
 
             var job = Job.FromExpression(() => MethodWithDateTimeArgument(date));
 
@@ -572,47 +571,6 @@ namespace Hangfire.Core.Tests.Common
             Assert.True(_methodInvoked);
         }
 
-#if !NETCOREAPP1_0
-        [Fact, StaticLock]
-        public void Perform_PassesCorrectDateTime_IfItWasSerialized_UsingTypeConverter()
-        {
-            // Arrange
-            _methodInvoked = false;
-            var typeConverter = TypeDescriptor.GetConverter(typeof (DateTime));
-            var convertedDate = typeConverter.ConvertToInvariantString(SomeDateTime);
-
-            var type = typeof (JobFacts);
-            var method = type.GetMethod("MethodWithDateTimeArgument");
-
-            var job = new Job(type, method, new[] { convertedDate });
-
-            // Act
-            job.Perform(_activator.Object, _token.Object);
-
-            // Assert - see also the `MethodWithDateTimeArgument` method.
-            Assert.True(_methodInvoked);
-        }
-#endif
-
-        [Fact, StaticLock]
-        public void Perform_PassesCorrectDateTime_IfItWasSerialized_UsingOldFormat()
-        {
-            // Arrange
-            _methodInvoked = false;
-            var convertedDate = SomeDateTime.ToString("MM/dd/yyyy HH:mm:ss.ffff");
-
-            var type = typeof(JobFacts);
-            var method = type.GetMethod("MethodWithDateTimeArgument");
-
-            var job = new Job(type, method, new[] { convertedDate });
-
-            // Act
-            job.Perform(_activator.Object, _token.Object);
-
-            // Assert - see also the `MethodWithDateTimeArgument` method.
-            Assert.True(_methodInvoked);
-        }
-
         [Fact, StaticLock]
         public void Perform_PassesCorrectDateTimeArguments()
         {
@@ -668,12 +626,12 @@ namespace Hangfire.Core.Tests.Common
         }
 
         [Fact]
-        public void Ctor_ThrowsJsonReaderException_OnArgumentsDeserializationFailure()
+        public void Ctor_ThrowsJsonException_OnArgumentsDeserializationFailure()
         {
             var type = typeof (JobFacts);
             var method = type.GetMethod("MethodWithDateTimeArgument");
 
-            Assert.Throws<JsonReaderException>(
+            Assert.Throws<JsonException>(
                 () => new Job(type, method, new []{ JobHelper.ToJson("sdfa") }));
         }
 

@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -21,7 +21,7 @@ using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.States;
 using Hangfire.Storage;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Hangfire
 {
@@ -144,7 +144,7 @@ namespace Hangfire
         /// <value>An array of non-negative numbers.</value>
         /// <exception cref="ArgumentNullException">The value in a set operation is null.</exception>
         /// <exception cref="ArgumentException">The value contain one or more negative numbers.</exception>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int[] DelaysInSeconds
         {
             get { lock (_lockObject) { return _delaysInSeconds; } }
@@ -182,7 +182,7 @@ namespace Hangfire
         /// Gets or sets a candidate state for a background job that 
         /// will be chosen when number of retry attempts exceeded.
         /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public AttemptsExceededAction OnAttemptsExceeded
         {
             get { lock (_lockObject) { return _onAttemptsExceeded; } }
@@ -192,7 +192,7 @@ namespace Hangfire
         /// <summary>
         /// Gets or sets whether to produce log messages on retry attempts.
         /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         [DefaultValue(true)]
         public bool LogEvents
         {
@@ -206,7 +206,7 @@ namespace Hangfire
         /// any exception, but this property allow to reduce it only to some specific
         /// exception types and their subtypes.
         /// </summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Type[] OnlyOn
         {
             get { lock (_lockObject) { return _onlyOn; } }
@@ -221,7 +221,7 @@ namespace Hangfire
         /// An array of <see cref="System.Type"/> objects representing the exception types to
         /// be excluded from automatic retries.
         /// </value>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Type[] ExceptOn
         {
             get { lock (_lockObject) { return _exceptOn; } }

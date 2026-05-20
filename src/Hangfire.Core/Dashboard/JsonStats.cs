@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -15,10 +15,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Hangfire.Dashboard
 {
@@ -39,12 +38,13 @@ namespace Hangfire.Dashboard
                 result.Add(metric.Name, value);
             }
 
-            var settings = new JsonSerializerSettings
+            var options = new JsonSerializerOptions
             {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                Converters = new JsonConverter[]{ new StringEnumConverter { CamelCaseText = true } }
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
-            var serialized = JsonConvert.SerializeObject(result, settings);
+            options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+
+            var serialized = JsonSerializer.Serialize(result, options);
 
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(serialized).ConfigureAwait(false);

@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net451;netstandard1.3;netstandard2.0;</TargetFrameworks>
+    <TargetFrameworks>net462;netstandard2.0</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RootNamespace>Hangfire.SqlServer</RootNamespace>
   </PropertyGroup>
   
-  <PropertyGroup Condition="'$(TargetFramework)'=='net451'">
+  <PropertyGroup Condition="'$(TargetFramework)'=='net462'">
     <DefineConstants>$(DefineConstants);FEATURE_TRANSACTIONSCOPE;FEATURE_CONFIGURATIONMANAGER</DefineConstants>
   </PropertyGroup>
   
@@ -13,7 +13,7 @@
     <ProjectReference Include="..\Hangfire.Core\Hangfire.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='net451'">
+  <ItemGroup Condition="'$(TargetFramework)'=='net462'">
     <Reference Include="System.Configuration" />
     <Reference Include="System.Transactions" />
 
@@ -21,15 +21,11 @@
     <PackageReference Include="Dapper" Version="1.60.6" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='netstandard1.3'">
-    <PackageReference Include="Dapper" Version="1.60.6" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
     <PackageReference Include="Dapper" Version="2.1.28" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)'=='netstandard1.3' or '$(TargetFramework)'=='netstandard2.0'">
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
     <Compile Remove="SqlServerBootstrapperConfigurationExtensions.cs" />
   </ItemGroup>
   

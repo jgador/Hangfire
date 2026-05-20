@@ -15,17 +15,17 @@
 
 using System;
 using System.Globalization;
+using System.Text.Json;
 using Hangfire.Annotations;
-using Newtonsoft.Json;
 
 namespace Hangfire.Common
 {
     public static class JobHelper
     {
-        [Obsolete("Please use `GlobalConfiguration.UseSerializerSettings` instead. Will be removed in 2.0.0")]
-        public static void SetSerializerSettings(JsonSerializerSettings setting)
+        [Obsolete("Please use `GlobalConfiguration.UseSerializerOptions` instead. Will be removed in 2.0.0")]
+        public static void SetSerializerOptions(JsonSerializerOptions options)
         {
-            SerializationHelper.SetUserSerializerSettings(setting);
+            SerializationHelper.SetUserSerializerOptions(options);
         }
 
         [Obsolete("Please use `SerializationHelper.Serialize` with appropriate serialization option instead. Will be removed in 2.0.0")]

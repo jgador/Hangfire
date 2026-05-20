@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2015 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2015 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -23,7 +23,7 @@ using Hangfire.Dashboard;
 using Hangfire.Dashboard.Pages;
 using Hangfire.Logging;
 using Hangfire.Logging.LogProviders;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace Hangfire
 {
@@ -286,36 +286,36 @@ namespace Hangfire
         }
 
         /// <summary>
-        /// These settings are used to serialize user data like arguments or parameters.
+        /// These options are used to serialize user data like arguments or parameters.
         /// You can use <see cref="SerializationHelper.Serialize{T}(T, SerializationOption)"/> with <see cref="SerializationOption.User"/> option
-        /// to serialize with specified settings
+        /// to serialize with specified options.
         /// </summary>
-        public static IGlobalConfiguration UseSerializerSettings(
+        public static IGlobalConfiguration UseSerializerOptions(
             [NotNull] this IGlobalConfiguration configuration,
-            [CanBeNull] JsonSerializerSettings settings)
+            [CanBeNull] JsonSerializerOptions options)
         {
             if (configuration == null) throw new ArgumentNullException(nameof(configuration));
 
-            SerializationHelper.SetUserSerializerSettings(settings);
+            SerializationHelper.SetUserSerializerOptions(options);
             return configuration;
         }
 
-        public static IGlobalConfiguration UseRecommendedSerializerSettings(
+        public static IGlobalConfiguration UseRecommendedSerializerOptions(
             [NotNull] this IGlobalConfiguration configuration)
         {
-            return UseRecommendedSerializerSettings(configuration, null);
+            return UseRecommendedSerializerOptions(configuration, null);
         }
 
-        public static IGlobalConfiguration UseRecommendedSerializerSettings(
+        public static IGlobalConfiguration UseRecommendedSerializerOptions(
             [NotNull] this IGlobalConfiguration configuration,
-            [CanBeNull] Action<JsonSerializerSettings> settingsConfiguration)
+            [CanBeNull] Action<JsonSerializerOptions> optionsConfiguration)
         {
             if (configuration == null) throw new ArgumentNullException(nameof(configuration));
 
-            var settings = SerializationHelper.GetInternalSettings();
-            settingsConfiguration?.Invoke(settings);
+            var options = new JsonSerializerOptions(SerializationHelper.GetInternalOptions());
+            optionsConfiguration?.Invoke(options);
 
-            SerializationHelper.SetUserSerializerSettings(settings);
+            SerializationHelper.SetUserSerializerOptions(options);
             return configuration;
         }
 

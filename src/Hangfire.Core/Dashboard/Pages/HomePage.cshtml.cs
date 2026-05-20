@@ -51,7 +51,7 @@ namespace Hangfire.Dashboard.Pages
     #line hidden
     
     #line 8 "..\..\Dashboard\Pages\HomePage.cshtml"
-    using Newtonsoft.Json;
+    using System.Text.Json;
     
     #line default
     #line hidden
@@ -322,7 +322,7 @@ WriteLiteral("            <canvas width=\"1140\" height=\"210\" id=\"historyGrap
 
             
             #line 77 "..\..\Dashboard\Pages\HomePage.cshtml"
-                            Write(JsonConvert.SerializeObject(succeeded));
+                            Write(JsonSerializer.Serialize(succeeded));
 
             
             #line default
@@ -332,7 +332,7 @@ WriteLiteral("\"\r\n                 data-failed=\"");
 
             
             #line 78 "..\..\Dashboard\Pages\HomePage.cshtml"
-                         Write(JsonConvert.SerializeObject(failed));
+                         Write(JsonSerializer.Serialize(failed));
 
             
             #line default
@@ -342,7 +342,7 @@ WriteLiteral("\"\r\n                 data-deleted=\"");
 
             
             #line 79 "..\..\Dashboard\Pages\HomePage.cshtml"
-                           Write(deleted != null ? JsonConvert.SerializeObject(deleted) : String.Empty);
+                           Write(deleted != null ? JsonSerializer.Serialize(deleted) : String.Empty);
 
             
             #line default

@@ -1,4 +1,4 @@
-﻿extern alias ReferencedDapper;
+extern alias ReferencedDapper;
 
 using System;
 using System.Collections.Generic;
@@ -584,9 +584,9 @@ select scope_identity() as Id";
                     arrangeSql,
                     new
                     {
-                        invocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
+                        invocationData = InvocationData.SerializeJob(job).SerializePayload(excludeArguments: true),
                         stateName = "Succeeded",
-                        arguments = "['Arguments']"
+                        arguments = JobHelper.ToJson(new[] { JobHelper.ToJson("Arguments") })
                     }).Single();
 
                 var result = connection.GetJobData(((long)jobId.Id).ToString());
@@ -622,9 +622,9 @@ select @id as Id";
                     arrangeSql,
                     new
                     {
-                        invocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
+                        invocationData = InvocationData.SerializeJob(job).SerializePayload(excludeArguments: true),
                         stateName = "Succeeded",
-                        arguments = "['Arguments']"
+                        arguments = JobHelper.ToJson(new[] { JobHelper.ToJson("Arguments") })
                     }).Single();
 
                 var result = connection.GetJobData(((long)jobId.Id).ToString());
@@ -758,9 +758,9 @@ select scope_identity() as Id";
                     arrangeSql,
                     new
                     {
-                        invocationData = JobHelper.ToJson(new InvocationData(null, null, null, null)),
+                        invocationData = "{\"t\":\"Missing.Type\",\"m\":\"MissingMethod\",\"p\":[],\"a\":[]}",
                         stateName = "Succeeded",
-                        arguments = "['Arguments']"
+                        arguments = JobHelper.ToJson(new[] { JobHelper.ToJson("Arguments") })
                     }).Single();
 
                 var result = connection.GetJobData(((long)jobId.Id).ToString());
@@ -2355,7 +2355,7 @@ values (@key, @value, @expireAt, 0.0)";
             var arrangeSql = $@"
 SET IDENTITY_INSERT [{Constants.DefaultSchema}].Job ON;
 insert into [{Constants.DefaultSchema}].Job (Id, InvocationData, Arguments, StateName, CreatedAt)
-values (@jobId, @invocationData, '[''Arguments'']', 'Succeeded', getutcdate());";
+values (@jobId, @invocationData, @arguments, 'Succeeded', getutcdate());";
 
             UseConnections((sql, connection) =>
             {
@@ -2366,7 +2366,8 @@ values (@jobId, @invocationData, '[''Arguments'']', 'Succeeded', getutcdate());"
                     new
                     {
                         jobId = int.MaxValue + 1L,
-                        invocationData = JobHelper.ToJson(InvocationData.Serialize(job)),
+                        invocationData = InvocationData.SerializeJob(job).SerializePayload(excludeArguments: true),
+                        arguments = JobHelper.ToJson(new[] { JobHelper.ToJson("Arguments") })
                     });
 
                 var result = connection.GetJobData((int.MaxValue + 1L).ToString());
@@ -2507,7 +2508,7 @@ values (@jobId, @name, @value)";
         [Fact, CleanSerializerSettings]
         public void HandlesChangingProcessOfStateDataSerialization()
         {
-            GlobalConfiguration.Configuration.UseSerializerSettings(SerializerSettingsHelper.DangerousSettings);
+            GlobalConfiguration.Configuration.UseSerializerOptions(SerializerSettingsHelper.DangerousOptions);
             var stateData = new Dictionary<string, string>
             {
                 { "key1", "value1" },
@@ -2527,7 +2528,7 @@ values (@jobId, @name, @value)";
         [Fact, CleanSerializerSettings]
         public void HandlesChangingProcessOfInvocationDataSerialization()
         {
-            GlobalConfiguration.Configuration.UseSerializerSettings(SerializerSettingsHelper.DangerousSettings);
+            GlobalConfiguration.Configuration.UseSerializerOptions(SerializerSettingsHelper.DangerousOptions);
 
             var initialJob = Job.FromExpression(() => Console.WriteLine());
             var invocationData = InvocationData.Serialize(initialJob);

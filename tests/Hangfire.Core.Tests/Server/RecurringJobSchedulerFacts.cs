@@ -1,9 +1,10 @@
-﻿extern alias ReferencedCronos;
+extern alias ReferencedCronos;
 
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using ReferencedCronos::Cronos;
 using Hangfire.Client;
@@ -1105,7 +1106,7 @@ namespace Hangfire.Core.Tests.Server
             _transaction.Verify(x => x.SetRangeInHash(It.IsAny<string>(), It.Is<Dictionary<string, string>>(dict => 
                 dict.Count == 3 &&
                 dict["NextExecution"] == String.Empty &&
-                dict["Error"].Contains("JsonReaderException") &&
+                dict["Error"].Contains("JsonException") &&
                 dict["V"] == "2")));
             _transaction.Verify(x => x.AddToSet("recurring-jobs", RecurringJobId, -1));
             _transaction.Verify(x => x.Commit());

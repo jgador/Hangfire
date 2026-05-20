@@ -1,12 +1,11 @@
-﻿using System;
+using System;
+using System.Text.Json;
 #if NETCOREAPP1_0
 using System.Reflection;
 #endif
 using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Storage;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Xunit;
 #pragma warning disable 618
 
@@ -213,59 +212,50 @@ namespace Hangfire.Core.Tests.Common
         }
 
         [DataCompatibilityRangeFact]
-        public void ForSerializeUseDefaultConfigurationOfJsonNet()
+        public void ForSerializeUsesDefaultJsonConfiguration()
         {
             var result = JobHelper.ToJson(new ClassA("A"));
             Assert.Equal(@"{""PropertyA"":""A""}", result);
         }
 
         [DataCompatibilityRangeFact]
-        public void ForSerializeCanUseCustomConfigurationOfJsonNet()
+        public void ForSerializeCanUseCustomJsonConfiguration()
         {
             try
             {
-                JobHelper.SetSerializerSettings(new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });
+                JobHelper.SetSerializerOptions(new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
                 var result = JobHelper.ToJson(new ClassA("A"));
                 Assert.Equal(@"{""propertyA"":""A""}", result);
             }
             finally
             {
-                JobHelper.SetSerializerSettings(null);
+                JobHelper.SetSerializerOptions(null);
             }
         }
 
         [DataCompatibilityRangeFact]
-        public void ForDeserializeCanUseCustomConfigurationOfJsonNet()
+        public void ForDeserializeCanUseCustomJsonConfiguration()
         {
             try
             {
-                JobHelper.SetSerializerSettings(new JsonSerializerSettings
-                {
-                    TypeNameHandling = TypeNameHandling.Objects
-                });
+                JobHelper.SetSerializerOptions(new JsonSerializerOptions(SerializationHelper.GetInternalOptions()));
 
-                var result = (ClassA)JobHelper.FromJson<IClass>(@"{ ""$type"": ""Hangfire.Core.Tests.Common.JobHelperFacts+ClassA, Hangfire.Core.Tests"", ""propertyA"":""A"" }");
+                var result = (ClassA)JobHelper.FromJson<IClass>(@"{ ""$type"": ""Hangfire.Core.Tests.Common.JobHelperFacts+ClassA, Hangfire.Core.Tests"", ""PropertyA"":""A"" }");
                 Assert.Equal("A", result.PropertyA);
             }
             finally
             {
-                JobHelper.SetSerializerSettings(null);
+                JobHelper.SetSerializerOptions(null);
             }
         }
 
         [DataCompatibilityRangeFact]
-        public void ForDeserializeCanUseCustomConfigurationOfJsonNetWithInvocationData()
+        public void ForDeserializeCanUseCustomJsonConfigurationWithInvocationData()
         {
             try
             {
-                JobHelper.SetSerializerSettings(new JsonSerializerSettings
-                {
-                    TypeNameHandling = TypeNameHandling.All,
-#if !NET452 && !NET461 && !NETCOREAPP1_0
-                    TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple
-#endif
-                });
+                JobHelper.SetSerializerOptions(new JsonSerializerOptions(SerializationHelper.GetInternalOptions()));
 
                 var method = typeof (BackgroundJob).GetMethod("DoWork");
                 var args = new object[] { "123", "Test" };
@@ -280,28 +270,25 @@ namespace Hangfire.Core.Tests.Common
             }
             finally
             {
-                JobHelper.SetSerializerSettings(null);
+                JobHelper.SetSerializerOptions(null);
             }
         }
 
         [DataCompatibilityRangeFact]
-        public void ForDeserializeWithGenericMethodCanUseCustomConfigurationOfJsonNet()
+        public void ForDeserializeWithGenericMethodCanUseCustomJsonConfiguration()
         {
             try
             {
-                JobHelper.SetSerializerSettings(new JsonSerializerSettings
-                {
-                    TypeNameHandling = TypeNameHandling.Objects
-                });
+                JobHelper.SetSerializerOptions(new JsonSerializerOptions(SerializationHelper.GetInternalOptions()));
 
-                var result = (ClassA)JobHelper.FromJson(@"{ ""$type"": ""Hangfire.Core.Tests.Common.JobHelperFacts+ClassA, Hangfire.Core.Tests"", ""propertyA"":""A"" }", typeof(IClass));
+                var result = (ClassA)JobHelper.FromJson(@"{ ""$type"": ""Hangfire.Core.Tests.Common.JobHelperFacts+ClassA, Hangfire.Core.Tests"", ""PropertyA"":""A"" }", typeof(IClass));
 
                 Assert.NotNull(result);
                 Assert.Equal("A", result.PropertyA);
             }
             finally
             {
-                JobHelper.SetSerializerSettings(null);
+                JobHelper.SetSerializerOptions(null);
             }
         }
 

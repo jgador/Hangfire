@@ -5,7 +5,7 @@
 @using Hangfire.Dashboard.Pages
 @using Hangfire.Dashboard.Resources
 @using Hangfire.Storage
-@using Newtonsoft.Json
+@using System.Text.Json
 @inherits RazorPage
 @{
     Layout = new LayoutPage(Strings.HomePage_Title);
@@ -74,9 +74,9 @@
         @if (succeeded != null && failed != null)
         {
             <canvas width="1140" height="210" id="historyGraph"
-                 data-succeeded="@JsonConvert.SerializeObject(succeeded)"
-                 data-failed="@JsonConvert.SerializeObject(failed)"
-                 data-deleted="@(deleted != null ? JsonConvert.SerializeObject(deleted) : String.Empty)"
+                 data-succeeded="@JsonSerializer.Serialize(succeeded)"
+                 data-failed="@JsonSerializer.Serialize(failed)"
+                 data-deleted="@(deleted != null ? JsonSerializer.Serialize(deleted) : String.Empty)"
                  data-succeeded-string="@Strings.HomePage_GraphHover_Succeeded"
                  data-failed-string="@Strings.HomePage_GraphHover_Failed"
                  data-deleted-string="@Strings.JobsSidebarMenu_Deleted"

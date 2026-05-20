@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Hangfire.Client;
@@ -698,7 +698,7 @@ namespace Hangfire.Core.Tests
             _connection.Setup(x => x.GetAllEntriesFromHash($"recurring-job:{_id}"))
                 .Returns(new Dictionary<string, string>
                 {
-                    { "Job", JobHelper.ToJson(InvocationData.Serialize(Job.FromExpression(() => Console.WriteLine()))) },
+                    { "Job", InvocationData.SerializeJob(Job.FromExpression(() => Console.WriteLine())).SerializePayload() },
                     { "Cron", Cron.Minutely() }
                 });
 
@@ -719,7 +719,7 @@ namespace Hangfire.Core.Tests
             _connection.Setup(x => x.GetAllEntriesFromHash($"recurring-job:{_id}"))
                 .Returns(new Dictionary<string, string>
                 {
-                    { "Job", JobHelper.ToJson(InvocationData.Serialize(_job)) },
+                    { "Job", InvocationData.SerializeJob(_job).SerializePayload() },
                     { "Cron", _cronExpression },
                     { "Queue", "my_queue" }
                 });
@@ -751,7 +751,7 @@ namespace Hangfire.Core.Tests
             _connection.Setup(x => x.GetAllEntriesFromHash($"recurring-job:{_id}"))
                 .Returns(new Dictionary<string, string>
                 {
-                    { "Job", JobHelper.ToJson(InvocationData.Serialize(_job)) },
+                    { "Job", InvocationData.SerializeJob(_job).SerializePayload() },
                     { "Cron", "0 0 31 2 *" },
                 });
 
@@ -842,7 +842,7 @@ namespace Hangfire.Core.Tests
         [Fact, CleanSerializerSettings]
         public void HandlesChangingProcessOfInvocationDataSerialization()
         {
-            SerializationHelper.SetUserSerializerSettings(SerializerSettingsHelper.DangerousSettings);
+            SerializationHelper.SetUserSerializerOptions(SerializerSettingsHelper.DangerousOptions);
 
             var initialJob = Job.FromExpression(() => Console.WriteLine());
             var invocationData = InvocationData.Serialize(initialJob);

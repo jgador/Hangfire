@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Hangfire.Common;
 using Hangfire.Storage;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Hangfire.States
 {

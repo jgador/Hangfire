@@ -27,7 +27,7 @@ namespace Hangfire.SqlServer.Tests
         [Fact, CleanSerializerSettings]
         public void HandlesChangingProcessOfServerDataSerialization()
         {
-            GlobalConfiguration.Configuration.UseSerializerSettings(SerializerSettingsHelper.DangerousSettings);
+            GlobalConfiguration.Configuration.UseSerializerOptions(SerializerSettingsHelper.DangerousOptions);
 
             var serverData = new ServerData
             {
@@ -209,11 +209,9 @@ namespace Hangfire.SqlServer.Tests
 
             UseSqlConnection(connection =>
             {
-                var wrongData = new InvocationData("asfasf", "232", "afasf", "gg");
-                var payload = wrongData.SerializePayload(excludeArguments: true);
                 connection.Execute(
                     $"update [{Constants.DefaultSchema}].Job set InvocationData = @data, Arguments = @args where Id = @jobId",
-                    new { jobId, data = payload, args = wrongData.Arguments });
+                    new { jobId, data = "{\"t\":\"asfasf\",\"m\":\"232\",\"p\":[\"afasf\"]}", args = "[\"gg\"]" });
             });
 
             var monitoring = CreateMonitoringApi();
@@ -423,11 +421,9 @@ namespace Hangfire.SqlServer.Tests
 
             UseSqlConnection(connection =>
             {
-                var wrongData = new InvocationData("asfasf", "232", "afasf", "gg");
-                var payload = wrongData.SerializePayload(excludeArguments: true);
                 connection.Execute(
                     $"update [{Constants.DefaultSchema}].Job set InvocationData = @data, Arguments = @args where Id = @jobId",
-                    new { jobId, data = payload, args = wrongData.Arguments });
+                    new { jobId, data = "{\"t\":\"asfasf\",\"m\":\"232\",\"p\":[\"afasf\"]}", args = "[\"gg\"]" });
             });
 
             var monitoring = CreateMonitoringApi();
@@ -655,11 +651,9 @@ namespace Hangfire.SqlServer.Tests
 
             UseSqlConnection(connection =>
             {
-                var wrongData = new InvocationData("asfasf", "232", "afasf", "gg");
-                var payload = wrongData.SerializePayload(excludeArguments: true);
                 connection.Execute(
                     $"update [{Constants.DefaultSchema}].Job set InvocationData = @data, Arguments = @args where Id = @jobId",
-                    new { jobId, data = payload, args = wrongData.Arguments });
+                    new { jobId, data = "{\"t\":\"asfasf\",\"m\":\"232\",\"p\":[\"afasf\"]}", args = "[\"gg\"]" });
             });
 
             var monitoring = CreateMonitoringApi();
