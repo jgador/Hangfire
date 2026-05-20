@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -34,20 +34,6 @@ namespace Hangfire.Dashboard
             routes.Add(pathTemplate, new RazorPageDispatcher(pageFunc));
         }
 
-#if FEATURE_OWIN
-        [Obsolete("Use the AddCommand(RouteCollection, string, Func<DashboardContext, bool>) overload instead. Will be removed in 2.0.0.")]
-        public static void AddCommand(
-            [NotNull] this RouteCollection routes, 
-            [NotNull] string pathTemplate, 
-            [NotNull] Func<RequestDispatcherContext, bool> command)
-        {
-            if (routes == null) throw new ArgumentNullException(nameof(routes));
-            if (pathTemplate == null) throw new ArgumentNullException(nameof(pathTemplate));
-            if (command == null) throw new ArgumentNullException(nameof(command));
-
-            routes.Add(pathTemplate, new CommandDispatcher(command));
-        }
-#endif
 
         public static void AddCommand(
             [NotNull] this RouteCollection routes,
@@ -61,20 +47,6 @@ namespace Hangfire.Dashboard
             routes.Add(pathTemplate, new CommandDispatcher(command));
         }
 
-#if FEATURE_OWIN
-        [Obsolete("Use the AddBatchCommand(RouteCollection, string, Func<DashboardContext, bool>) overload instead. Will be removed in 2.0.0.")]
-        public static void AddBatchCommand(
-            [NotNull] this RouteCollection routes, 
-            [NotNull] string pathTemplate, 
-            [NotNull] Action<RequestDispatcherContext, string> command)
-        {
-            if (routes == null) throw new ArgumentNullException(nameof(routes));
-            if (pathTemplate == null) throw new ArgumentNullException(nameof(pathTemplate));
-            if (command == null) throw new ArgumentNullException(nameof(command));
-
-            routes.Add(pathTemplate, new BatchCommandDispatcher(command));
-        }
-#endif
 
         public static void AddBatchCommand(
             [NotNull] this RouteCollection routes,

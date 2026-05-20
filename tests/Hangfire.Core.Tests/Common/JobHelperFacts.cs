@@ -1,8 +1,5 @@
 using System;
 using System.Text.Json;
-#if NETCOREAPP1_0
-using System.Reflection;
-#endif
 using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Storage;

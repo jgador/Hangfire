@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -88,11 +88,7 @@ namespace Hangfire.Common
 
         private static string GetStackTrace(Exception ex, bool includeFileInfo)
         {
-#if NETSTANDARD1_3
-            return ex.StackTrace;
-#else
             return new System.Diagnostics.StackTrace(ex, includeFileInfo).ToString();
-#endif
         }
     }
 }

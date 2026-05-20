@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2016 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2016 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -36,7 +36,6 @@ namespace Hangfire.AspNetCore
 
         public override void DisposeScope()
         {
-#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1
             if (_serviceScope is IAsyncDisposable asyncDisposable)
             {
                 // Service scope disposal is triggered inside a dedicated background thread,
@@ -47,7 +46,6 @@ namespace Hangfire.AspNetCore
 #pragma warning restore CA2012
                 return;
             }
-#endif
             _serviceScope.Dispose();
         }
     }

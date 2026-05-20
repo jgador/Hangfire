@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2020 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2020 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -29,7 +29,6 @@ namespace Hangfire.Server
         [SuppressMessage("SonarLint", "S2930:IDisposablesShouldBeDisposed", Justification = "Has static lifetime, disposed on process shutdown.")]
         private static readonly CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
-#if !NETSTANDARD1_3
         private static int _isInitialized;
         private static bool _isSucceeded;
         // ReSharper disable once NotAccessedField.Local
@@ -37,33 +36,21 @@ namespace Hangfire.Server
         private static Func<string> _shutdownReasonFunc;
         private static Func<bool> _checkConfigChangedFunc;
         private static Func<bool> _disposingHttpRuntime;
-#endif
 
         public static bool IsSucceeded =>
-#if !NETSTANDARD1_3
             _isSucceeded
-#else
-            false
-#endif
         ;
 
         public static CancellationToken GetShutdownToken()
         {
-#if !NETSTANDARD1_3
             EnsureInitialized();
-#endif
             return CancellationTokenSource.Token;
         }
 
         public static bool DisposingHttpRuntime =>
-#if !NETSTANDARD1_3
             _disposingHttpRuntime != null && _disposingHttpRuntime()
-#else
-            false
-#endif
             ;
 
-#if !NETSTANDARD1_3
         private static void EnsureInitialized()
         {
             if (Interlocked.Exchange(ref _isInitialized, 1) != 0) return;
@@ -306,7 +293,6 @@ namespace Hangfire.Server
             var fieldExp = Expression.Field(convExp, fieldInfo);
             return Expression.Lambda<Func<object, T>>(fieldExp, instExp).Compile();
         }
-#endif
 
         private static ILog GetLogger()
         {

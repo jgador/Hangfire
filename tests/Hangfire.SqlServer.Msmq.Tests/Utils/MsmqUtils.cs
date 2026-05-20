@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Messaging;
+using MSMQ.Messaging;
 
 // ReSharper disable PossibleNullReferenceException
 

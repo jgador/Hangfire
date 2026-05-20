@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -217,7 +217,6 @@ namespace Hangfire.Server
 
                     if (recurringJobIds != null)
                     {
-#if !NETSTANDARD1_3
                         if (MaxDegreeOfParallelism > 1)
                         {
                             Parallel.ForEach(
@@ -239,7 +238,6 @@ namespace Hangfire.Server
                                 });
                         }
                         else
-#endif
                         {
                             foreach (var recurringJobId in recurringJobIds)
                             {

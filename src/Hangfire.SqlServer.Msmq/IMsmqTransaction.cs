@@ -14,7 +14,7 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
-using System.Messaging;
+using MSMQ.Messaging;
 
 namespace Hangfire.SqlServer.Msmq
 {

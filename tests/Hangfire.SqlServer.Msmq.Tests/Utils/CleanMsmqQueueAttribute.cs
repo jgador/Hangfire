@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using System.Messaging;
+using MSMQ.Messaging;
 using System.Reflection;
 using System.Threading;
 using Xunit.Sdk;
@@ -24,17 +24,25 @@ namespace Hangfire.SqlServer.Msmq.Tests
         {
             Monitor.Enter(GlobalLock);
 
-            foreach (var queuePath in _queues.Select(GetPath))
+            try
             {
-                if (MessageQueue.Exists(queuePath))
+                foreach (var queuePath in _queues.Select(GetPath))
                 {
-                    MessageQueue.Delete(queuePath);
-                }
+                    if (MessageQueue.Exists(queuePath))
+                    {
+                        MessageQueue.Delete(queuePath);
+                    }
 
-                using (MessageQueue.Create(queuePath, transactional: true))
-                {
-                    // We just need to create it.
+                    using (MessageQueue.Create(queuePath, transactional: true))
+                    {
+                        // We just need to create it.
+                    }
                 }
+            }
+            catch
+            {
+                Monitor.Exit(GlobalLock);
+                throw;
             }
         }
 

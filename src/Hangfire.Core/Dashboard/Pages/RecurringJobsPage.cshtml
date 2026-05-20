@@ -1,4 +1,4 @@
-﻿@* Generator: Template TypeVisibility: Internal GeneratePrettyNames: true *@
+@* Generator: Template TypeVisibility: Internal GeneratePrettyNames: true *@
 @using System
 @using System.Collections.Generic
 @using Hangfire
@@ -116,23 +116,15 @@
                                                 {
                                                     RecurringJobEntity.ParseCronExpression(job.Cron);
                                                 }
-                                                catch (Exception ex) when (ex.IsCatchableExceptionType())
+                                                catch (Exception ex)
                                                 {
+                                                    if (!ex.IsCatchableExceptionType())
+                                                    {
+                                                        throw;
+                                                    }
+
                                                     cronDescription = ex.Message;
                                                     cronError = true;
-                                                }
-
-                                                if (cronDescription == null)
-                                                {
-#if FEATURE_CRONDESCRIPTOR
-                                                    try
-                                                    {
-                                                        cronDescription = CronExpressionDescriptor.ExpressionDescriptor.GetDescription(job.Cron);
-                                                    }
-                                                    catch (FormatException)
-                                                    {
-                                                    }
-#endif
                                                 }
                                             }
                                         }
@@ -163,8 +155,13 @@
                                                 var resolver = DashboardOptions.TimeZoneResolver ?? new DefaultTimeZoneResolver();
                                                 displayName = resolver.GetTimeZoneById(job.TimeZoneId).DisplayName;
                                             }
-                                            catch (Exception ex) when (ex.IsCatchableExceptionType())
+                                            catch (Exception ex)
                                             {
+                                                if (!ex.IsCatchableExceptionType())
+                                                {
+                                                    throw;
+                                                }
+
                                                 displayName = null;
                                                 exception = ex;
                                             }
@@ -287,4 +284,4 @@
             </div>
         }
     </div>
-</div>    
+</div>

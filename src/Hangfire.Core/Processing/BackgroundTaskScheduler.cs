@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -114,9 +114,7 @@ namespace Hangfire.Processing
             // Stopped event should always be the first in this array, see the DispatchLoop method.
             _waitHandles = new WaitHandle[] { _stopped, _semaphore };
 
-#if !NETSTANDARD1_3
             AppDomainUnloadMonitor.EnsureInitialized();
-#endif
 
             _threads = threadFactory(DispatchLoop)?.ToArray();
 
@@ -226,9 +224,7 @@ namespace Hangfire.Processing
 
         private static void DefaultExceptionHandler(Exception exception)
         {
-#if !NETSTANDARD1_3
             Trace.WriteLine("An unhandled exception occurred: " + exception);
-#endif
         }
 
         private void DispatchLoop()
@@ -273,7 +269,6 @@ namespace Hangfire.Processing
                         // of this type. Since this is an ordinal shutdown, we can skip
                         // the reporting logic.
                     }
-#if !NETSTANDARD1_3
                     catch (Exception ex) when (ex is ThreadAbortException || ex is ThreadInterruptedException)
                     {
                         // We don't have methods like IThreadPoolWorkItem.MarkAborted in public
@@ -301,10 +296,8 @@ namespace Hangfire.Processing
                             }
                         }
                     }
-#endif
                 }
             }
-#if !NETSTANDARD1_3
             catch (ThreadAbortException ex)
             {
                 // ThreadAbortException is expected during AppDomain unloads, so we
@@ -314,7 +307,6 @@ namespace Hangfire.Processing
                     InvokeUnhandledExceptionHandler(ex);
                 }
             }
-#endif
             catch (Exception ex) when (ex.IsCatchableExceptionType())
             {
                 InvokeUnhandledExceptionHandler(ex);
@@ -328,16 +320,10 @@ namespace Hangfire.Processing
                 var handler = _exceptionHandler;
                 handler?.Invoke(exception);
             }
-#if !NETSTANDARD1_3
             catch (Exception ex) when (ex.IsCatchableExceptionType())
             {
                 Trace.WriteLine("Unexpected exception caught in exception handler itself." + Environment.NewLine + ex);
             }
-#else
-            catch
-            {
-            }
-#endif
         }
 
         private void ThrowIfDisposed()

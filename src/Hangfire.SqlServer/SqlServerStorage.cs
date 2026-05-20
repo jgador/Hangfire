@@ -21,13 +21,7 @@ using System.Data.Common;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-#if FEATURE_CONFIGURATIONMANAGER
 using System.Configuration;
-#endif
-#if FEATURE_TRANSACTIONSCOPE
-using System.Transactions;
-using IsolationLevel = System.Transactions.IsolationLevel;
-#endif
 using Dapper;
 using Hangfire.Annotations;
 using Hangfire.Dashboard;
@@ -324,71 +318,48 @@ namespace Hangfire.SqlServer
                 : _options.TransactionIsolationLevel);
 #pragma warning restore 618
 
-#if FEATURE_TRANSACTIONSCOPE
-            if (IsRunningOnWindows() && !_options.DisableTransactionScope)
+            return UseConnection(dedicatedConnection, static (storage, connection, ctx) =>
             {
-                using (var transaction = CreateTransaction(isolationLevel))
+                using (var transaction = connection.BeginTransaction(
+                    ctx.Value.Value ?? System.Data.IsolationLevel.ReadCommitted))
                 {
-                    var result = UseConnection(dedicatedConnection, static (storage, connection, ctx) =>
-                    {
-                        connection.EnlistTransaction(Transaction.Current);
-                        return ctx.Key(storage, connection, null, ctx.Value);
-                    }, new KeyValuePair<Func<SqlServerStorage, DbConnection, DbTransaction, TContext, TResult>, TContext>(func, context));
+                    TResult result;
 
-                    transaction.Complete();
+                    try
+                    {
+                        result = ctx.Key(storage, connection, transaction, ctx.Value.Key);
+                        transaction.Commit();
+                    }
+                    catch (Exception ex) when (ex.IsCatchableExceptionType())
+                    {
+                        // It is possible that XACT_ABORT option is set, and in this
+                        // case transaction will be aborted automatically on server.
+                        // Some older SqlClient implementations throw InvalidOperationException
+                        // when trying to rollback such an aborted transaction, so we
+                        // try to handle this case.
+                        //
+                        // It's also possible that our connection is broken, so this
+                        // check is useful even when XACT_ABORT option wasn't set.
+                        if (transaction.Connection != null)
+                        {
+                            // Don't rely on implicit rollback when calling the Dispose
+                            // method, because some implementations may throw the
+                            // NullReferenceException, although it's prohibited to throw
+                            // any exception from a Dispose method, according to the
+                            // .NET Framework Design Guidelines:
+                            // https://github.com/dotnet/efcore/issues/12864
+                            // https://github.com/HangfireIO/Hangfire/issues/1494
+                            transaction.Rollback();
+                        }
+
+                        throw;
+                    }
 
                     return result;
                 }
-            }
-            else
-#endif
-            {
-                return UseConnection(dedicatedConnection, static (storage, connection, ctx) =>
-                {
-                    using (var transaction = connection.BeginTransaction(
-#if !FEATURE_TRANSACTIONSCOPE
-                        ctx.Value.Value ??
-#endif
-                        System.Data.IsolationLevel.ReadCommitted))
-                    {
-                        TResult result;
-
-                        try
-                        {
-                            result = ctx.Key(storage, connection, transaction, ctx.Value.Key);
-                            transaction.Commit();
-                        }
-                        catch (Exception ex) when (ex.IsCatchableExceptionType())
-                        {
-                            // It is possible that XACT_ABORT option is set, and in this
-                            // case transaction will be aborted automatically on server.
-                            // Some older SqlClient implementations throw InvalidOperationException
-                            // when trying to rollback such an aborted transaction, so we
-                            // try to handle this case.
-                            //
-                            // It's also possible that our connection is broken, so this
-                            // check is useful even when XACT_ABORT option wasn't set.
-                            if (transaction.Connection != null)
-                            {
-                                // Don't rely on implicit rollback when calling the Dispose
-                                // method, because some implementations may throw the
-                                // NullReferenceException, although it's prohibited to throw
-                                // any exception from a Dispose method, according to the
-                                // .NET Framework Design Guidelines:
-                                // https://github.com/dotnet/efcore/issues/12864
-                                // https://github.com/HangfireIO/Hangfire/issues/1494
-                                transaction.Rollback();
-                            }
-
-                            throw;
-                        }
-
-                        return result;
-                    }
-                }, new KeyValuePair<Func<SqlServerStorage, DbConnection, DbTransaction, TContext, TResult>, KeyValuePair<TContext, IsolationLevel?>>(
-                    func,
-                    new KeyValuePair<TContext, IsolationLevel?>(context, isolationLevel)));
-            }
+            }, new KeyValuePair<Func<SqlServerStorage, DbConnection, DbTransaction, TContext, TResult>, KeyValuePair<TContext, IsolationLevel?>>(
+                func,
+                new KeyValuePair<TContext, IsolationLevel?>(context, isolationLevel)));
         }
 
         internal DbConnection CreateAndOpenConnection()
@@ -438,11 +409,7 @@ namespace Hangfire.SqlServer
 
         private static bool IsRunningOnWindows()
         {
-#if !NETSTANDARD1_3
             return Environment.OSVersion.Platform == PlatformID.Win32NT;
-#else
-            return System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
-#endif
         }
 
         private void Initialize()
@@ -527,7 +494,6 @@ namespace Hangfire.SqlServer
 
         private static string GetConnectionString(string nameOrConnectionString)
         {
-#if FEATURE_CONFIGURATIONMANAGER
             if (IsConnectionString(nameOrConnectionString))
             {
                 return nameOrConnectionString;
@@ -540,12 +506,8 @@ namespace Hangfire.SqlServer
 
             throw new ArgumentException(
                 $"Could not find connection string with name '{nameOrConnectionString}' in application config file");
-#else
-            return nameOrConnectionString;
-#endif
         }
 
-#if FEATURE_CONFIGURATIONMANAGER
         private static bool IsConnectionString(string nameOrConnectionString)
         {
             return nameOrConnectionString.Contains(";");
@@ -557,17 +519,6 @@ namespace Hangfire.SqlServer
 
             return connectionStringSetting != null;
         }
-#endif
-
-#if FEATURE_TRANSACTIONSCOPE
-        private TransactionScope CreateTransaction(IsolationLevel? isolationLevel)
-        {
-            return isolationLevel != null
-                ? new TransactionScope(TransactionScopeOption.Required,
-                    new TransactionOptions { IsolationLevel = isolationLevel.Value, Timeout = _options.TransactionTimeout })
-                : new TransactionScope();
-        }
-#endif
 
         public static readonly DashboardMetric ActiveConnections = new DashboardMetric(
             "connections:active",

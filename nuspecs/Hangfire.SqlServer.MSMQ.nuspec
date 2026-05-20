@@ -48,15 +48,16 @@
 ]]>
     </releaseNotes>
     <dependencies>
-      <group targetFramework="net462">
+      <group targetFramework="net5.0">
         <dependency id="Hangfire.Core" version="[%version%]" />
         <dependency id="Hangfire.SqlServer" version="[%version%]" />
+        <dependency id="MSMQ.Messaging" version="1.0.4" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="net462\Hangfire.SqlServer.Msmq.dll" target="lib\net462" />
-    <file src="net462\Hangfire.SqlServer.Msmq.xml" target="lib\net462" />
+    <file src="net5.0\Hangfire.SqlServer.Msmq.dll" target="lib\net5.0" />
+    <file src="net5.0\Hangfire.SqlServer.Msmq.xml" target="lib\net5.0" />
 
     <file src="..\nuspecs\icon.png" />
 

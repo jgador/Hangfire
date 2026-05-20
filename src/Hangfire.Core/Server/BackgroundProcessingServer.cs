@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -115,10 +115,8 @@ namespace Hangfire.Server
 
             _dispatcher = CreateDispatcher();
 
-#if !NETSTANDARD1_3
             AppDomain.CurrentDomain.DomainUnload += OnCurrentDomainUnload;
             AppDomain.CurrentDomain.ProcessExit += OnCurrentDomainUnload;
-#endif
 
             _shutdownRegistration = AspNetShutdownDetector.GetShutdownToken().Register(OnAspNetShutdown);
         }
@@ -166,10 +164,8 @@ namespace Hangfire.Server
 
             if (Interlocked.Exchange(ref _disposed, 1) == 1) return;
 
-#if !NETSTANDARD1_3
             AppDomain.CurrentDomain.DomainUnload -= OnCurrentDomainUnload;
             AppDomain.CurrentDomain.ProcessExit -= OnCurrentDomainUnload;
-#endif
 
             _dispatcher.Dispose();
             _stoppingCts.Dispose();

@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -26,16 +26,6 @@ namespace Hangfire.Dashboard
         private readonly List<Tuple<string, IDashboardDispatcher>> _dispatchers
             = new List<Tuple<string, IDashboardDispatcher>>();
 
-#if FEATURE_OWIN
-        [Obsolete("Use the Add(string, IDashboardDispatcher) overload instead. Will be removed in 2.0.0.")]
-        public void Add([NotNull] string pathTemplate, [NotNull] IRequestDispatcher dispatcher)
-        {
-            if (pathTemplate == null) throw new ArgumentNullException(nameof(pathTemplate));
-            if (dispatcher == null) throw new ArgumentNullException(nameof(dispatcher));
-
-            _dispatchers.Add(new Tuple<string, IDashboardDispatcher>(pathTemplate, new RequestDispatcherWrapper(dispatcher)));
-        }
-#endif
 
         public void Add([NotNull] string pathTemplate, [NotNull] IDashboardDispatcher dispatcher)
         {

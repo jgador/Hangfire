@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public 
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
-#if !NET451 && !NETSTANDARD1_3
 
 using System;
 using System.Threading;
@@ -29,7 +28,6 @@ namespace Hangfire
     {
         private IBackgroundProcessingServer _server;
 
-#if NETSTANDARD2_1
         public BackgroundProcessingServerHostedService([NotNull] IBackgroundProcessingServer server)
             : this(server, null)
         {
@@ -42,12 +40,6 @@ namespace Hangfire
             _server = server ?? throw new ArgumentNullException(nameof(server));
             lifetime?.ApplicationStopping.Register(server.SendStop);
         }
-#else
-        public BackgroundProcessingServerHostedService([NotNull] IBackgroundProcessingServer server)
-        {
-            _server = server ?? throw new ArgumentNullException(nameof(server));
-        }
-#endif
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -67,5 +59,3 @@ namespace Hangfire
         }
     }
 }
-
-#endif

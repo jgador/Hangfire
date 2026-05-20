@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -141,9 +141,7 @@ namespace Hangfire.Server
 
             return new ServerHeartbeatProcess(_options.HeartbeatInterval, _options.ServerTimeout, requestRestart)
                 .UseBackgroundPool(threadCount: 1
-#if !NETSTANDARD1_3
                     , static thread => { thread.Priority = ThreadPriority.AboveNormal; }
-#endif
                 )
                 .Create(heartbeatContext, _options);
         }
@@ -181,19 +179,15 @@ namespace Hangfire.Server
             var serverName = _options.ServerName
                  ?? Environment.GetEnvironmentVariable("COMPUTERNAME")
                  ?? Environment.GetEnvironmentVariable("HOSTNAME")
-#if !NETSTANDARD1_3
                  ?? Environment.MachineName
-#endif
                 ;
 
             var guid = Guid.NewGuid().ToString();
 
-#if !NETSTANDARD1_3
             if (!String.IsNullOrWhiteSpace(serverName))
             {
                 serverName += ":" + Process.GetCurrentProcess().Id;
             }
-#endif
 
             return !String.IsNullOrWhiteSpace(serverName) ? $"{serverName.ToLowerInvariant()}:{guid}" : guid;
         }

@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <NoWarn>0618</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" NoWarn="NU1902" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" NoWarn="NU1902" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" NoWarn="NU1902" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.1.7" NoWarn="NU1902" />
     <PackageReference Include="Dapper" Version="2.1.28" />
   </ItemGroup>
 

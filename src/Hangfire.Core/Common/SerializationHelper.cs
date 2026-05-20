@@ -14,8 +14,11 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -92,7 +95,14 @@ namespace Hangfire.Common
             if (value == null) return null;
 
             var serializerOptions = GetSerializerOptions(option);
-            return JsonSerializer.Serialize(value, type ?? value.GetType(), serializerOptions);
+            var valueType = type ?? value.GetType();
+
+            if (UsesTypeMetadata(serializerOptions, valueType))
+            {
+                return SerializeWithTypeMetadata(value, serializerOptions);
+            }
+
+            return JsonSerializer.Serialize(value, valueType, serializerOptions);
         }
 
         /// <summary>
@@ -153,6 +163,7 @@ namespace Hangfire.Common
             };
 
             serializerOptions.Converters.Add(new TypeJsonConverter());
+            serializerOptions.Converters.Add(new TimeSpanJsonConverter());
             serializerOptions.Converters.Add(new TypeMetadataJsonConverterFactory());
 
             return serializerOptions;
@@ -193,6 +204,85 @@ namespace Hangfire.Common
             return Volatile.Read(ref _userSerializerOptions) ?? DefaultUserSerializerOptions.Value;
         }
 
+        private static bool UsesTypeMetadata(JsonSerializerOptions options, Type type)
+        {
+            foreach (var converter in options.Converters)
+            {
+                if (converter is TypeMetadataJsonConverterFactory && converter.CanConvert(type))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string SerializeWithTypeMetadata(object value, JsonSerializerOptions options)
+        {
+            using (var stream = new MemoryStream())
+            {
+                using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions
+                {
+                    Encoder = options.Encoder,
+                    Indented = options.WriteIndented
+                }))
+                {
+                    WriteValueWithTypeMetadata(writer, value, options);
+                }
+
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+
+        private static void WriteValueWithTypeMetadata(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        {
+            if (value == null)
+            {
+                writer.WriteNullValue();
+                return;
+            }
+
+            var runtimeType = value.GetType();
+
+            if (!ShouldWriteMetadata(runtimeType))
+            {
+                JsonSerializer.Serialize(writer, value, runtimeType, options);
+                return;
+            }
+
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(value, runtimeType, options);
+            using var document = JsonDocument.Parse(bytes);
+            var element = document.RootElement;
+
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                element.WriteTo(writer);
+                return;
+            }
+
+            writer.WriteStartObject();
+            writer.WriteString(TypePropertyName, TypeHelper.SimpleAssemblyTypeSerializer(runtimeType));
+
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.NameEquals(TypePropertyName)) continue;
+                property.WriteTo(writer);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        private static bool ShouldWriteMetadata(Type runtimeType)
+        {
+            var typeInfo = runtimeType.GetTypeInfo();
+            return !typeInfo.IsPrimitive &&
+                   runtimeType != typeof(string) &&
+                   runtimeType != typeof(decimal) &&
+                   runtimeType != typeof(DateTime) &&
+                   runtimeType != typeof(DateTimeOffset) &&
+                   runtimeType != typeof(Guid);
+        }
+
         private sealed class TypeJsonConverter : JsonConverter<Type>
         {
             public override Type Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -217,6 +307,95 @@ namespace Hangfire.Common
                 }
 
                 writer.WriteStringValue(TypeHelper.CurrentTypeSerializer(value));
+            }
+        }
+
+        private sealed class TimeSpanJsonConverter : JsonConverter<TimeSpan>
+        {
+            public override TimeSpan Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType != JsonTokenType.String)
+                {
+                    throw new JsonException($"Expected a JSON string when reading {nameof(TimeSpan)}.");
+                }
+
+                return TimeSpan.Parse(reader.GetString(), CultureInfo.InvariantCulture);
+            }
+
+            public override void Write(Utf8JsonWriter writer, TimeSpan value, JsonSerializerOptions options)
+            {
+                writer.WriteStringValue(value.ToString("c", CultureInfo.InvariantCulture));
+            }
+
+        }
+
+        private sealed class TimeSpanDictionaryJsonConverterFactory : JsonConverterFactory
+        {
+            public override bool CanConvert(Type typeToConvert)
+            {
+                return typeToConvert.GetTypeInfo().IsGenericType &&
+                       typeToConvert.GetGenericTypeDefinition() == typeof(Dictionary<,>) &&
+                       typeToConvert.GetGenericArguments()[0] == typeof(TimeSpan);
+            }
+
+            public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+            {
+                return (JsonConverter)Activator.CreateInstance(
+                    typeof(TimeSpanDictionaryJsonConverter<>).MakeGenericType(typeToConvert.GetGenericArguments()[1]));
+            }
+        }
+
+        private sealed class TimeSpanDictionaryJsonConverter<TValue> : JsonConverter<Dictionary<TimeSpan, TValue>>
+        {
+            public override Dictionary<TimeSpan, TValue> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                if (reader.TokenType == JsonTokenType.Null) return null;
+                if (reader.TokenType != JsonTokenType.StartObject)
+                {
+                    throw new JsonException("Expected a JSON object when reading a TimeSpan-keyed dictionary.");
+                }
+
+                var result = new Dictionary<TimeSpan, TValue>();
+                while (reader.Read())
+                {
+                    if (reader.TokenType == JsonTokenType.EndObject)
+                    {
+                        return result;
+                    }
+
+                    if (reader.TokenType != JsonTokenType.PropertyName)
+                    {
+                        throw new JsonException("Expected a JSON property name when reading a TimeSpan-keyed dictionary.");
+                    }
+
+                    var key = TimeSpan.Parse(reader.GetString(), CultureInfo.InvariantCulture);
+                    if (!reader.Read())
+                    {
+                        throw new JsonException("Expected a JSON value when reading a TimeSpan-keyed dictionary.");
+                    }
+
+                    var value = JsonSerializer.Deserialize<TValue>(ref reader, options);
+                    result.Add(key, value);
+                }
+
+                throw new JsonException("Expected the end of a JSON object when reading a TimeSpan-keyed dictionary.");
+            }
+
+            public override void Write(Utf8JsonWriter writer, Dictionary<TimeSpan, TValue> value, JsonSerializerOptions options)
+            {
+                if (value == null)
+                {
+                    writer.WriteNullValue();
+                    return;
+                }
+
+                writer.WriteStartObject();
+                foreach (var item in value)
+                {
+                    writer.WritePropertyName(item.Key.ToString("c", CultureInfo.InvariantCulture));
+                    JsonSerializer.Serialize(writer, item.Value, options);
+                }
+                writer.WriteEndObject();
             }
         }
 
@@ -297,32 +476,23 @@ namespace Hangfire.Common
 
             public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
             {
-                return new TypeMetadataJsonConverter(typeToConvert);
+                return (JsonConverter)Activator.CreateInstance(
+                    typeof(TypeMetadataJsonConverter<>).MakeGenericType(typeToConvert));
             }
         }
 
-        private sealed class TypeMetadataJsonConverter : JsonConverter<object>
+        private sealed class TypeMetadataJsonConverter<T> : JsonConverter<T>
         {
-            private readonly Type _declaredType;
+            private static readonly Type DeclaredType = typeof(T);
 
-            public TypeMetadataJsonConverter(Type declaredType)
-            {
-                _declaredType = declaredType;
-            }
-
-            public override bool CanConvert(Type typeToConvert)
-            {
-                return typeToConvert == _declaredType;
-            }
-
-            public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 using var document = JsonDocument.ParseValue(ref reader);
                 var element = document.RootElement;
 
                 if (element.ValueKind == JsonValueKind.Null)
                 {
-                    return null;
+                    return default;
                 }
 
                 if (element.ValueKind == JsonValueKind.Object &&
@@ -335,77 +505,35 @@ namespace Hangfire.Common
                     }
 
                     var actualType = TypeHelper.CurrentTypeResolver(typeName);
-                    if (_declaredType != typeof(object) &&
-                        !_declaredType.GetTypeInfo().IsAssignableFrom(actualType.GetTypeInfo()))
+                    if (DeclaredType != typeof(object) &&
+                        !DeclaredType.GetTypeInfo().IsAssignableFrom(actualType.GetTypeInfo()))
                     {
                         throw new JsonException(
-                            $"The type '{actualType}' is not assignable to '{_declaredType}'.");
+                            $"The type '{actualType}' is not assignable to '{DeclaredType}'.");
                     }
 
-                    return JsonSerializer.Deserialize(element.GetRawText(), actualType, options);
+                    return (T)JsonSerializer.Deserialize(element.GetRawText(), actualType, options);
                 }
 
-                if (_declaredType == typeof(object))
+                if (DeclaredType == typeof(object))
                 {
-                    return JsonSerializer.Deserialize<JsonElement>(element.GetRawText(), options);
+                    return (T)(object)JsonSerializer.Deserialize<JsonElement>(element.GetRawText(), options);
                 }
 
-                throw new JsonException($"The '{TypePropertyName}' metadata property is required for '{_declaredType}'.");
+                throw new JsonException($"The '{TypePropertyName}' metadata property is required for '{DeclaredType}'.");
             }
 
-            public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+            public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
             {
-                if (value == null)
-                {
-                    writer.WriteNullValue();
-                    return;
-                }
-
-                var runtimeType = value.GetType();
-
-                if (!ShouldWriteMetadata(runtimeType))
-                {
-                    JsonSerializer.Serialize(writer, value, runtimeType, options);
-                    return;
-                }
-
-                var bytes = JsonSerializer.SerializeToUtf8Bytes(value, runtimeType, options);
-                using var document = JsonDocument.Parse(bytes);
-                var element = document.RootElement;
-
-                if (element.ValueKind != JsonValueKind.Object)
-                {
-                    element.WriteTo(writer);
-                    return;
-                }
-
-                writer.WriteStartObject();
-                writer.WriteString(TypePropertyName, TypeHelper.SimpleAssemblyTypeSerializer(runtimeType));
-
-                foreach (var property in element.EnumerateObject())
-                {
-                    if (property.NameEquals(TypePropertyName)) continue;
-                    property.WriteTo(writer);
-                }
-
-                writer.WriteEndObject();
-            }
-
-            private static bool ShouldWriteMetadata(Type runtimeType)
-            {
-                var typeInfo = runtimeType.GetTypeInfo();
-                return !typeInfo.IsPrimitive &&
-                       runtimeType != typeof(string) &&
-                       runtimeType != typeof(decimal) &&
-                       runtimeType != typeof(DateTime) &&
-                       runtimeType != typeof(DateTimeOffset) &&
-                       runtimeType != typeof(Guid);
+                WriteValueWithTypeMetadata(writer, value, options);
             }
         }
 
         private static JsonSerializerOptions WithUserConverters(JsonSerializerOptions options)
         {
             if (HasConverterFor<Type>(options) &&
+                HasConverterFor<TimeSpan>(options) &&
+                HasConverterFor<Dictionary<TimeSpan, object>>(options) &&
                 HasConverterFor<object>(options) &&
                 HasConverterFor<CultureInfo>(options))
             {
@@ -422,6 +550,16 @@ namespace Hangfire.Common
             if (!HasConverterFor<Type>(options))
             {
                 options.Converters.Add(new TypeJsonConverter());
+            }
+
+            if (!HasConverterFor<TimeSpan>(options))
+            {
+                options.Converters.Add(new TimeSpanJsonConverter());
+            }
+
+            if (!HasConverterFor<Dictionary<TimeSpan, object>>(options))
+            {
+                options.Converters.Add(new TimeSpanDictionaryJsonConverterFactory());
             }
 
             if (!HasConverterFor<object>(options))

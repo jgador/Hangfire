@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -21,16 +21,6 @@ namespace Hangfire.Dashboard
 {
     public class UrlHelper
     {
-#if FEATURE_OWIN
-        private readonly Microsoft.Owin.OwinContext _owinContext;
-
-        [Obsolete("Please use UrlHelper(DashboardContext) instead. Will be removed in 2.0.0.")]
-        public UrlHelper([NotNull] IDictionary<string, object> owinEnvironment)
-        {
-            if (owinEnvironment == null) throw new ArgumentNullException(nameof(owinEnvironment));
-            _owinContext = new Microsoft.Owin.OwinContext(owinEnvironment);
-        }
-#endif
 
         private readonly DashboardContext _context;
 
@@ -44,9 +34,6 @@ namespace Hangfire.Dashboard
         {
             return _context.Options.PrefixPath +
                    (
-#if FEATURE_OWIN
-                       _owinContext?.Request.PathBase.Value ??
-#endif
                        _context.Request.PathBase
                    ) + relativePath;
         }

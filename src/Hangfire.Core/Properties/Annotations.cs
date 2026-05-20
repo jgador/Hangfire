@@ -1,17 +1,7 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
-#if NETSTANDARD1_3
-namespace System.Diagnostics.CodeAnalysis
-{
-    [Conditional("DEBUG")] // don't bloat release assemblies
-    [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = false)]
-    internal sealed class ExcludeFromCodeCoverageAttribute : Attribute
-    {
-    }
-}
-#endif
 
 #pragma warning disable 1591
 // ReSharper disable UnusedMember.Global

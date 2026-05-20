@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -42,11 +42,7 @@ namespace Hangfire.Dashboard
         {
             try
             {
-#if !NETSTANDARD1_3
                 DisplayNameType = typeof(DisplayNameAttribute);
-#else
-                DisplayNameType = Type.GetType("System.ComponentModel.DisplayNameAttribute, System.ComponentModel.Primitives");
-#endif
                 if (DisplayNameType == null) return;
 
                 var p = Expression.Parameter(typeof(object));

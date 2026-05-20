@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2016 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2016 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -19,11 +19,7 @@ using Hangfire.Annotations;
 using Hangfire.Dashboard;
 using Hangfire.Server;
 using Microsoft.AspNetCore.Builder;
-#if NETSTANDARD2_1 || NETCOREAPP3_0_OR_GREATER
 using Microsoft.Extensions.Hosting;
-#else
-using Microsoft.AspNetCore.Hosting;
-#endif
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Hangfire.Common;
@@ -56,9 +52,7 @@ namespace Hangfire
             return app;
         }
 
-#if !NET451 && !NETSTANDARD1_3
         [Obsolete("Please use IServiceCollection.AddHangfireServer extension method instead in the ConfigureServices method. Will be removed in 2.0.0.")]
-#endif
         public static IApplicationBuilder UseHangfireServer(
             [NotNull] this IApplicationBuilder app,
             [CanBeNull] BackgroundJobServerOptions options = null,
@@ -105,11 +99,7 @@ namespace Hangfire
             [NotNull] this IServiceProvider services,
             [NotNull] IBackgroundProcessingServer server)
         {
-#if NETSTANDARD2_1 || NETCOREAPP3_0_OR_GREATER
             var lifetime = services.GetRequiredService<IHostApplicationLifetime>();
-#else
-            var lifetime = services.GetRequiredService<IApplicationLifetime>();
-#endif
 
             lifetime.ApplicationStopping.Register(server.SendStop);
             lifetime.ApplicationStopped.Register(server.Dispose);

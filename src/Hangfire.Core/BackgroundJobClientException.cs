@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -26,9 +26,7 @@ namespace Hangfire
     /// implements the <see cref="IBackgroundJobClient"/> interface is unable
     /// to perform an operation due to an error.
     /// </summary>
-#if !NETSTANDARD1_3
     [Serializable]
-#endif
     public class BackgroundJobClientException : CreateJobFailedException
     {
         /// <summary>
@@ -42,7 +40,6 @@ namespace Hangfire
         {
         }
 
-#if !NETSTANDARD1_3
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundJobClientException"/> class
         /// with serialized data.
@@ -53,6 +50,5 @@ namespace Hangfire
             : base(info, context)
         {
         }
-#endif
     }
 }

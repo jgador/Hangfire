@@ -18,9 +18,7 @@ using System.Runtime.Serialization;
 
 namespace Hangfire.SqlServer
 {
-#if !NETSTANDARD1_3
     [Serializable]
-#endif
     public class SqlServerDistributedLockException : Exception
     {
         public SqlServerDistributedLockException(string message)
@@ -28,7 +26,6 @@ namespace Hangfire.SqlServer
         {
         }
         
-#if !NETSTANDARD1_3
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlServerDistributedLockException"/> class
         /// with serialized data.
@@ -39,6 +36,5 @@ namespace Hangfire.SqlServer
             : base(info, context)
         {
         }
-#endif
     }
 }

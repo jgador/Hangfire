@@ -527,12 +527,7 @@ Hangfire.SqlServer.Msmq
 ]]>
     </releaseNotes>
     <dependencies>
-      <group targetFramework="net462">
-        <dependency id="Hangfire.Core" version="[%version%]" />
-        <dependency id="Hangfire.SqlServer" version="[%version%]" />
-        <dependency id="Microsoft.Owin.Host.SystemWeb" version="3.0.0" />
-      </group>
-      <group targetFramework="netstandard2.0">
+      <group targetFramework="net5.0">
         <dependency id="Hangfire.Core" version="[%version%]" />
         <dependency id="Hangfire.SqlServer" version="[%version%]" />
         <dependency id="Hangfire.AspNetCore" version="[%version%]" />

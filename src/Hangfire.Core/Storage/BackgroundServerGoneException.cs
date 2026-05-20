@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2018 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2018 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -18,16 +18,13 @@ using System.Runtime.Serialization;
 
 namespace Hangfire.Storage
 {
-#if !NETSTANDARD1_3
     [Serializable]
-#endif
     public class BackgroundServerGoneException : Exception
     {
         public BackgroundServerGoneException()
         {
         }
 
-#if !NETSTANDARD1_3
         /// <summary>
         /// Initializes a new instance of the <see cref="BackgroundServerGoneException"/> class
         /// with serialized data.
@@ -38,6 +35,5 @@ namespace Hangfire.Storage
             : base(info, context)
         {
         }
-#endif
     }
 }

@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -59,9 +59,7 @@ namespace Hangfire.Dashboard
                 }
 
                 serviceName = Char.ToLower(serviceName[0]
-#if !NETSTANDARD1_3
                     , CultureInfo.InvariantCulture
-#endif
                     ) + serviceName.Substring(1);
 
                 builder.Append(WrapKeyword("var"));

@@ -40,14 +40,19 @@ Hangfire is available as a NuGet package. You can install it using the NuGet Pac
 PM> Install-Package Hangfire
 ```
 
-After installation, update your existing [OWIN Startup](https://www.asp.net/aspnet/overview/owin-and-katana/owin-startup-class-detection) file with the following lines of code. If you do not have this class in your project or don't know what is it, please read the [Quick start](https://docs.hangfire.io/en/latest/getting-started/index.html) guide to learn about how to install Hangfire.
+This fork targets .NET 5 only. .NET Framework, .NET Standard, and older .NET Core target assets are not built or packaged.
+
+After installation, update your ASP.NET Core startup code with the following lines. Please read the [Quick start](https://docs.hangfire.io/en/latest/getting-started/index.html) guide to learn more about how to install Hangfire.
 
 ```csharp
-public void Configuration(IAppBuilder app)
+public void ConfigureServices(IServiceCollection services)
 {
     GlobalConfiguration.Configuration.UseSqlServerStorage("<connection string or its name>");
-    
-    app.UseHangfireServer();
+    services.AddHangfireServer();
+}
+
+public void Configure(IApplicationBuilder app)
+{
     app.UseHangfireDashboard();
 }
 ```
@@ -92,10 +97,11 @@ BackgroundJob.ContinueWith(id, () => Console.WriteLine("world!"));
 
 **Process background tasks inside a web application…**
 
-You can process background tasks in any OWIN-compatible application framework, including [ASP.NET MVC](https://www.asp.net/mvc), [ASP.NET Web API](https://www.asp.net/web-api), [FubuMvc](https://fubu-project.org), [Nancy](https://nancyfx.org), etc. Forget about [AppDomain unloads, Web Garden & Web Farm issues](https://haacked.com/archive/2011/10/16/the-dangers-of-implementing-recurring-background-tasks-in-asp-net.aspx/) – Hangfire is reliable for web applications from scratch, even on shared hosting.
+You can process background tasks in ASP.NET Core applications and expose the dashboard from the same request pipeline.
 
 ```csharp
-app.UseHangfireServer();
+services.AddHangfireServer();
+app.UseHangfireDashboard();
 ```
 
 **… or anywhere else**
@@ -133,6 +139,7 @@ Building the sources
 ---------------------
 
 Prerequisites:
+* .NET 5 SDK and runtime.
 * [Razor Generator](https://marketplace.visualstudio.com/items?itemName=DavidEbbo.RazorGenerator): Required if you intend to edit the cshtml files.
 * Install the MSMQ service (Microsoft Message Queue Server), if not already installed.
 

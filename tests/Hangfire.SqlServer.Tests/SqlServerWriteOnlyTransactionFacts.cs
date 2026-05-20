@@ -1,4 +1,4 @@
-﻿extern alias ReferencedDapper;
+extern alias ReferencedDapper;
 
 using System;
 using System.Collections.Generic;
@@ -38,15 +38,6 @@ namespace Hangfire.SqlServer.Tests
             yield return new object[] { /* useBatching */ false, /* useMicrosoftDataSqlClient */ true,  /* disableTransactionScope */ false };
             yield return new object[] { /* useBatching */ true,  /* useMicrosoftDataSqlClient */ false, /* disableTransactionScope */ false };
             yield return new object[] { /* useBatching */ true,  /* useMicrosoftDataSqlClient */ true,  /* disableTransactionScope */ false };
-#if NET452 || NET461
-            if (IsRunningOnWindows()) // TransactionScope isn't used on non-Windows platforms
-            {
-                yield return new object[] { /* useBatching */ false, /* useMicrosoftDataSqlClient */ false, /* disableTransactionScope */ true };
-                yield return new object[] { /* useBatching */ false, /* useMicrosoftDataSqlClient */ true,  /* disableTransactionScope */ true };
-                yield return new object[] { /* useBatching */ true,  /* useMicrosoftDataSqlClient */ false, /* disableTransactionScope */ true };
-                yield return new object[] { /* useBatching */ true,  /* useMicrosoftDataSqlClient */ true,  /* disableTransactionScope */ true };
-            }
-#endif
         }
 
         [Fact]
@@ -363,16 +354,11 @@ select scope_identity() as Id";
 
             UseConnection(sql =>
             {
-                // External providers support DisableTransactionScope parameter in .NET Framework.
                 Commit(x => x.AddToQueue("default", "1"), useMicrosoftDataSqlClient, useBatching, disableTransactionScope: false);
 
                 correctJobQueue.Verify(x => x.Enqueue(
-#if NETCOREAPP
                     It.IsNotNull<System.Data.Common.DbConnection>(),
                     It.IsNotNull<System.Data.Common.DbTransaction>(),
-#else
-                    It.IsNotNull<IDbConnection>(),
-#endif
                     "default", 
                     "1"));
             }, useMicrosoftDataSqlClient);
@@ -2375,9 +2361,6 @@ values (@jobId, '', '', getutcdate())";
         {
             return new SqlServerStorageOptions
             {
-#if NET452 || NET461
-                DisableTransactionScope = disableTransactionScope,
-#endif
                 CommandBatchMaxTimeout = useBatching ? (TimeSpan?)TimeSpan.FromMinutes(5) : null
             };
         }

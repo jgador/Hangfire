@@ -18,7 +18,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using Dapper;
 using Hangfire.Annotations;
@@ -60,7 +59,7 @@ namespace Hangfire.SqlServer
         private bool _completed;
 
         [Obsolete("Don't use this class directly, use SqlServerConnection.AcquireDistributedLock instead as it provides better safety. Will be removed in 2.0.0.")]
-        [SuppressMessage("Performance", "CA1854:Prefer the \'IDictionary.TryGetValue(TKey, out TValue)\' method")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1854:Prefer the \'IDictionary.TryGetValue(TKey, out TValue)\' method")]
         public SqlServerDistributedLock([NotNull] SqlServerStorage storage, [NotNull] string resource, TimeSpan timeout)
         {
             if (storage == null) throw new ArgumentNullException(nameof(storage));
@@ -96,7 +95,7 @@ namespace Hangfire.SqlServer
             }
         }
 
-        [SuppressMessage("Performance", "CA1854:Prefer the \'IDictionary.TryGetValue(TKey, out TValue)\' method")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1854:Prefer the \'IDictionary.TryGetValue(TKey, out TValue)\' method")]
         public void Dispose()
         {
             if (_completed) return;

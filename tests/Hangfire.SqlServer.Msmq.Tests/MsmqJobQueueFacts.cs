@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Data;
-using System.Messaging;
+using System.Data.Common;
+using MSMQ.Messaging;
 using System.Threading;
 using Moq;
 using Xunit;
@@ -12,12 +12,12 @@ namespace Hangfire.SqlServer.Msmq.Tests
     public class MsmqJobQueueFacts
     {
         private readonly CancellationToken _token;
-        private readonly Mock<IDbConnection> _connection;
+        private readonly Mock<DbConnection> _connection;
 
         public MsmqJobQueueFacts()
         {
             _token = new CancellationToken();
-            _connection = new Mock<IDbConnection>();
+            _connection = new Mock<DbConnection>();
         }
 
         [Fact]
@@ -29,14 +29,14 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Equal("pathPattern", exception.ParamName);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void Enqueue_SendsTheJobId()
         {
             // Arrange
             var queue = CreateQueue(MsmqTransactionType.Internal);
 
             // Act
-            queue.Enqueue(_connection.Object, "my-queue", "job-id");
+            queue.Enqueue(_connection.Object, null, "my-queue", "job-id");
 
             // Assert
             using (var messageQueue = CleanMsmqQueueAttribute.GetMessageQueue("my-queue"))
@@ -52,14 +52,14 @@ namespace Hangfire.SqlServer.Msmq.Tests
             }
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void Enqueue_AddsAJob_WhenIdIsLongValue()
         {
             // Arrange
             var queue = CreateQueue(MsmqTransactionType.Internal);
 
             // Act
-            queue.Enqueue(_connection.Object, "my-queue", (int.MaxValue + 1L).ToString());
+            queue.Enqueue(_connection.Object, null, "my-queue", (int.MaxValue + 1L).ToString());
 
             // Assert
             using (var messageQueue = CleanMsmqQueueAttribute.GetMessageQueue("my-queue"))
@@ -75,7 +75,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             }
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void Dequeue_ReturnsFetchedJob_WithJobId()
         {
             MsmqUtils.EnqueueJobId("my-queue", "job-id");
@@ -86,7 +86,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Equal("job-id", fetchedJob.JobId);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void Dequeue_ThrowsCanceledException_WhenTokenHasBeenCancelled()
         {
             var queue = CreateQueue(MsmqTransactionType.Internal);
@@ -96,7 +96,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
                 () => queue.Dequeue(new[] { "my-queue" }, token));
         }
 
-        [Fact, CleanMsmqQueue("queue-1", "queue-2")]
+        [MsmqFact, CleanMsmqQueue("queue-1", "queue-2")]
         public void Dequeue_ReturnsFetchedJob_FromOtherQueues_IfFirstAreEmpty()
         {
             MsmqUtils.EnqueueJobId("queue-2", "job-id");
@@ -107,7 +107,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Equal("job-id", fetchedJob.JobId);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void Dequeue_MakesJobInvisibleForOtherFetchers()
         {
             // Arrange
@@ -126,7 +126,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Equal(MessageQueueErrorCode.IOTimeout, exception.MessageQueueErrorCode);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void RemoveFromQueue_OnFetchedJob_RemovesTheJobCompletely()
         {
             // Arrange
@@ -146,7 +146,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Equal(MessageQueueErrorCode.IOTimeout, exception.MessageQueueErrorCode);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void DisposeWithoutRemoval_OnFetchedJob_ReturnsTheJobToTheQueue()
         {
             // Arrange

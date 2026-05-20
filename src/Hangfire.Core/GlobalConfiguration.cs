@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2015 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2015 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -60,11 +60,9 @@ namespace Hangfire
         {
             if (configuration == null) throw new ArgumentNullException(nameof(configuration));
 
-#if !NETSTANDARD1_3
             if (!Enum.IsDefined(typeof(CompatibilityLevel), compatibilityLevel))
                 throw new InvalidEnumArgumentException(nameof(compatibilityLevel), (int) compatibilityLevel,
                     typeof(CompatibilityLevel));
-#endif
 
             GlobalConfiguration.CompatibilityLevel = compatibilityLevel;
 

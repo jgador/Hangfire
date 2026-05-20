@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2017 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -190,31 +190,25 @@ namespace Hangfire.Processing
         private static TaskCompletionSource<T> CreateCompletionSource<T>()
         {
             return new TaskCompletionSource<T>(
-#if !NET451
                 TaskCreationOptions.RunContinuationsAsynchronously
-#endif
             );
         }
 
         private static void TrySetCanceled<T>(TaskCompletionSource<T> source, CancellationToken token)
         {
             source.TrySetCanceled(
-#if !NET451
                 token
-#endif
             );
         }
 
         private sealed class InvalidWaitHandle : WaitHandle
         {
-#if !NETSTANDARD1_3
             [Obsolete("Use the SafeWaitHandle property instead.")]
             public override IntPtr Handle
             {
                 get { return InvalidHandle; }
                 set { throw new InvalidOperationException(); }
             }
-#endif
         }
     }
 }

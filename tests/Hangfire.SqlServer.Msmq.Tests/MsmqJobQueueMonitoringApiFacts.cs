@@ -47,7 +47,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Empty(fetchedJobIds);
         }
 
-        [Fact, CleanMsmqQueue("my-queue", "another-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue", "another-queue")]
         public void GetEnqueuedAndFetchedCount_ReturnsCorrectCounters()
         {
             MsmqUtils.EnqueueJobId("my-queue", "1");
@@ -62,7 +62,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Null(result.FetchedCount);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void GetEnqueuedJobIds_ReturnsEmptyCollection_IfQueueIsEmpty()
         {
             var api = CreateMonitoringApi();
@@ -72,7 +72,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Empty(result);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void GetEnqueuedJobIds_ReturnsCorrectResult()
         {
             for (var i = 1; i <= 10; i++) { MsmqUtils.EnqueueJobId("my-queue", i.ToString()); }
@@ -85,7 +85,7 @@ namespace Hangfire.SqlServer.Msmq.Tests
             Assert.Equal(5, result[1]);
         }
 
-        [Fact, CleanMsmqQueue("my-queue")]
+        [MsmqFact, CleanMsmqQueue("my-queue")]
         public void GetEnqueuedJobIds_ReturnsCorrectResult_WhenJobIdIsLongValue()
         {
             MsmqUtils.EnqueueJobId("my-queue", (int.MaxValue + 1L).ToString());

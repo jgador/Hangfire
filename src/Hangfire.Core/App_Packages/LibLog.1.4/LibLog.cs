@@ -340,7 +340,6 @@ namespace Hangfire.Logging
             return GetLogger(typeof(T));
         }
 
-#if !NETSTANDARD1_3
         /// <summary>
         /// Gets a logger for the current class.
         /// </summary>
@@ -350,7 +349,6 @@ namespace Hangfire.Logging
             var stackFrame = new StackFrame(1, false);
             return GetLogger(stackFrame.GetMethod().DeclaringType);
         }
-#endif
 
         /// <summary>
         /// Gets a logger for the specified type.
@@ -392,11 +390,9 @@ namespace Hangfire.Logging
             new Tuple<IsLoggerAvailable, CreateLogProvider>(SerilogLogProvider.IsLoggerAvailable, static () => new SerilogLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(NLogLogProvider.IsLoggerAvailable, static () => new NLogLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(Log4NetLogProvider.IsLoggerAvailable, static () => new Log4NetLogProvider()),
-#if !NETSTANDARD1_3
             new Tuple<IsLoggerAvailable, CreateLogProvider>(EntLibLogProvider.IsLoggerAvailable, static () => new EntLibLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(LoupeLogProvider.IsLoggerAvailable, static () => new LoupeLogProvider()),
             new Tuple<IsLoggerAvailable, CreateLogProvider>(ElmahLogProvider.IsLoggerAvailable, static () => new ElmahLogProvider()),
-#endif
         };
 
         private static ILogProvider ResolveLogProvider()
@@ -841,7 +837,6 @@ namespace Hangfire.Logging.LogProviders
         }
     }
 
-#if !NETSTANDARD1_3
     public class EntLibLogProvider : ILogProvider
     {
         private const string TypeTemplate = "Microsoft.Practices.EnterpriseLibrary.Logging.{0}, Microsoft.Practices.EnterpriseLibrary.Logging";
@@ -995,7 +990,6 @@ namespace Hangfire.Logging.LogProviders
             }
         }
     }
-#endif
 
     public class SerilogLogProvider : ILogProvider
     {
@@ -1255,7 +1249,6 @@ namespace Hangfire.Logging.LogProviders
         }
     }
 
-#if !NETSTANDARD1_3
     public class LoupeLogProvider : ILogProvider
     {
         private static bool _providerIsAvailableOverride = true;
@@ -1381,7 +1374,6 @@ namespace Hangfire.Logging.LogProviders
             params object[] args
             );
     }
-#endif
 
     public class ColouredConsoleLogProvider : ILogProvider
     {
@@ -1445,9 +1437,7 @@ namespace Hangfire.Logging.LogProviders
             // Append a readable representation of the log level
 #pragma warning disable CA1311
             stringBuilder.Append(("[" + level.ToString().ToUpper(
-#if !NETSTANDARD1_3
                 CultureInfo.InvariantCulture
-#endif
                 ) + "]").PadRight(8));
 #pragma warning restore CA1311
 
@@ -1522,7 +1512,6 @@ namespace Hangfire.Logging.LogProviders
         }
     }
 
-#if !NETSTANDARD1_3
     public class ElmahLogProvider : ILogProvider
     {
         private static bool _providerIsAvailableOverride = true;
@@ -1634,5 +1623,4 @@ namespace Hangfire.Logging.LogProviders
             }
         }
     }
-#endif
 }

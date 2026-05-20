@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -28,13 +28,6 @@ namespace Hangfire.Dashboard
             _command = command;
         }
 
-#if FEATURE_OWIN
-        [Obsolete("Use the `CommandDispatcher(Func<DashboardContext, bool>)` ctor instead. Will be removed in 2.0.0.")]
-        public CommandDispatcher(Func<RequestDispatcherContext, bool> command)
-        {
-            _command = context => command(RequestDispatcherContext.FromDashboardContext(context));
-        }
-#endif
 
         public Task Dispatch(DashboardContext context)
         {

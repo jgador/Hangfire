@@ -14,9 +14,9 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
-using System.Data;
+using System.Data.Common;
 using System.Globalization;
-using System.Messaging;
+using MSMQ.Messaging;
 using System.Threading;
 using Hangfire.Storage;
 
@@ -78,15 +78,15 @@ namespace Hangfire.SqlServer.Msmq
             return null;
         }
 
-        public void Enqueue(IDbConnection connection, string queue, string jobId)
+        public void Enqueue(DbConnection connection, DbTransaction transaction, string queue, string jobId)
         {
             using (var messageQueue = GetMessageQueue(queue))
             using (var message = new Message { Label = jobId })
-            using (var transaction = new MessageQueueTransaction())
+            using (var messageQueueTransaction = new MessageQueueTransaction())
             {
-                transaction.Begin();
-                messageQueue.Send(message, transaction);
-                transaction.Commit();
+                messageQueueTransaction.Begin();
+                messageQueue.Send(message, messageQueueTransaction);
+                messageQueueTransaction.Commit();
             }
         }
 
