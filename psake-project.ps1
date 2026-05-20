@@ -11,20 +11,19 @@ Task Test -Depends Merge -Description "Run unit and integration tests against me
     # Dependencies shouldn't be re-built, because we need to run tests against merged assemblies to test
     # the same assemblies that are distributed to users. Since the `dotnet test` command doesn't support
     # the `--no-dependencies` command directly, we need to re-build tests themselves first.
-    Exec { ls "tests\**\*.csproj" | % { dotnet build -c Release --no-restore --no-dependencies $_.FullName } }
+    Exec { dotnet build -c Release --no-restore --no-dependencies "tests\Hangfire.Core.Tests" }
+    Exec { dotnet build -c Release --no-restore --no-dependencies "tests\Hangfire.SqlServer.Tests" }
 
     # We are running unit test project one by one, because pipelined version like the line above does not
     # support halting the whole execution pipeline when "dotnet test" command fails due to a failed test,
     # silently allowing build process to continue its execution even with failed tests.
     Exec { dotnet test -c Release --no-build "tests\Hangfire.Core.Tests" }
     Exec { dotnet test -c Release --no-build "tests\Hangfire.SqlServer.Tests" }
-    Exec { dotnet test -c Release --no-build -p:TestTfmsInParallel=false "tests\Hangfire.SqlServer.Msmq.Tests" }
 }
 
 Task Collect -Depends Test -Description "Copy all artifacts to the build folder." {
     Collect-Assembly "Hangfire.Core" "net5.0"
     Collect-Assembly "Hangfire.SqlServer" "net5.0"
-    Collect-Assembly "Hangfire.SqlServer.Msmq" "net5.0"
     Collect-Assembly "Hangfire.NetCore" "net5.0"
     Collect-Assembly "Hangfire.AspNetCore" "net5.0"
     
@@ -47,7 +46,6 @@ Task Pack -Depends Collect -Description "Create NuGet packages and archive files
     Create-Package "Hangfire" $version
     Create-Package "Hangfire.Core" $version
     Create-Package "Hangfire.SqlServer" $version
-    Create-Package "Hangfire.SqlServer.Msmq" $version
     Create-Package "Hangfire.AspNetCore" $version
     Create-Package "Hangfire.NetCore" $version
 

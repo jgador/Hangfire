@@ -11,7 +11,7 @@ Hangfire
 
 ## Overview
 
-Incredibly easy way to perform **fire-and-forget**, **delayed** and **recurring jobs** in **.NET applications**. CPU and I/O intensive, long-running and short-running jobs are supported. No Windows Service / Task Scheduler required. Backed by Redis, SQL Server, SQL Azure and MSMQ.
+Incredibly easy way to perform **fire-and-forget**, **delayed** and **recurring jobs** in **.NET applications**. CPU and I/O intensive, long-running and short-running jobs are supported. No Windows Service / Task Scheduler required. Backed by Redis, SQL Server and SQL Azure.
 
 Hangfire provides a unified programming model to handle background tasks in a **reliable way** and run them on shared hosting, dedicated hosting or in cloud. You can start with a simple setup and grow computational power for background jobs with time for these scenarios:
 
@@ -141,7 +141,6 @@ Building the sources
 Prerequisites:
 * .NET 5 SDK and runtime.
 * [Razor Generator](https://marketplace.visualstudio.com/items?itemName=DavidEbbo.RazorGenerator): Required if you intend to edit the cshtml files.
-* Install the MSMQ service (Microsoft Message Queue Server), if not already installed.
 
 Then, create an environment variable with Variable name `Hangfire_SqlServer_ConnectionStringTemplate` and put your connection string in the Variable value field. Example:
 
